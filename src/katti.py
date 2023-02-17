@@ -9,36 +9,17 @@ import random
 import re
 import sys
 import time
+import pkg_resources
+import requests
+from bs4 import BeautifulSoup
 
 # for customization of arg parser
 class Parser(argparse.ArgumentParser):
-  def _check_value(self, action, value):
-    if action.choices is not None and value not in action.choices:
-      raise argparse.ArgumentError(action, "invalid option")
-
-# check python version
-if sys.version_info[0] < 3:
-  print("Python 3 required")
-  print("Aborting...")
-  sys.exit(0)
-
-# set of dependencies
-missing_dependencies = {
-  "requests",
-  "beautiful soup"
-}
-
-# import and catch dependency failures
-try:
-  import requests
-  missing_dependencies.remove("requests")
-  from bs4 import BeautifulSoup
-  missing_dependencies.remove("beautiful soup")
-except:
-  for d in missing_dependencies:
-    print("package \"%s\" required" % d)
-  print("Aborting...")
-  sys.exit(0)
+  def random_extra(self):
+    pass
+  # def _check_value(self, action, value):
+  #   if action.choices is not None and value not in action.choices:
+  #     raise argparse.ArgumentError(action, "invalid option")
 
 # global verbose option
 verbose = False
@@ -74,8 +55,9 @@ DEFAULT_HIST_SIZE = 100
 # user config files
 user_conf = None
 problems_conf = None
-USER_CONF_PATH = "/usr/local/etc/katti/config.json"
-PROBLEMS_CONF_PATH = "/usr/local/etc/katti/problem_ids.json"
+USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'config/config.json')
+PROBLEMS_CONF_PATH = USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'config/problem_ids.json')
+
 HOME = os.path.expanduser('~')
 ZSH_COMP_PATH = os.path.join(HOME, ".config/zsh/custom_completions/_katti")
 
@@ -1109,7 +1091,7 @@ def main():
     metavar="<problem-id>",
     help="get a kattis problem by its problem id",
     type=str,
-    choices=list(problems_conf.keys())
+    # choices=list(problems_conf.keys())
   )
   arg_parser.add_argument("-r", "--run", help="run the test cases for a given problem", action="store_true")
   arg_parser.add_argument("-p", "--post", help="submit a kattis problem", action="store_true")
