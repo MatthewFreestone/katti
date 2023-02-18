@@ -12,6 +12,8 @@ import time
 import pkg_resources
 import requests
 from bs4 import BeautifulSoup
+from zipfile import ZipFile
+import webbrowser
 
 # for customization of arg parser
 class Parser(argparse.ArgumentParser):
@@ -127,11 +129,10 @@ return 1
 Adds a problem id to problems conf file
 '''
 def add(problem_id):
-  global problems_conf
+  global problems_conf, modified
   rating = get_problem_rating(problem_id)
   problems_conf[problem_id] = float(rating)
-  with open(PROBLEMS_CONF_PATH, 'w') as f:
-    f.write(json.dumps(problems_conf))
+  modified = True
 
 """
 Gets the a problem's rating and sample inputs from kattis
@@ -167,26 +168,27 @@ def get(problem_id):
     f.write(r.content)
     f.close()
   # create the directory, unzip the samples, remove the zip file, create the boilerplate file
-  if verbose:
-    os.system("mkdir -v %s" % problem_id)
-    print()
-    os.system("unzip samples.zip -d %s" % problem_id)
-    print()
-    os.system("rm -iv samples.zip")
-    print()
-    print("Writing boilerplate files...")
-    os.chdir(problem_id)
-    write_boilerplate(problem_id, extension, rating)
-    show_description()
-    os.chdir("..")
+  if not os.path.exists(problem_id):
+    print(f"Creating directory {problem_id} ...") if verbose else None
+    os.mkdir(problem_id)
   else:
-    os.system("mkdir -p %s" % problem_id)
-    os.system("unzip -q samples.zip -d %s" % problem_id)
-    os.system("rm samples.zip")
-    os.chdir(problem_id)
+    print(f"Directory {problem_id} already exists...") if verbose else None
+  # os.system("mkdir -v %s" % problem_id)
+  print("Unzipping samples...") if verbose else None
+  with ZipFile("samples.zip", 'r') as zipObj:
+    zipObj.extractall(path=problem_id)
+
+  print("Removing zip file...") if verbose else None
+  os.remove("samples.zip")
+  # os.system("rm -iv samples.zip")
+  os.chdir(problem_id)
+  if not os.path.exists(f"{problem_id}{extension}"):
+    print(f"Writing boilerplate file {problem_id}{extension} ...") if verbose else None
     write_boilerplate(problem_id, extension, rating)
-    show_description()
-    os.chdir("..")
+  else:
+    print(f"File {problem_id}{extension} already exists, skipping writing boilerplate...") if verbose else None
+  show_description()
+  os.chdir("..")
 
 
 """
@@ -196,15 +198,18 @@ Params: A string problem_id
 Returns: A string representing the problem's rating
 """
 def get_problem_rating(problem_id):
+  print("Making http request: https://open.kattis.com/problems/" + problem_id) if verbose else None
   r = requests.get("https://open.kattis.com/problems/" + problem_id)
   # bad request
   if r.status_code != 200:
     print("URL <{}> returned non 200 status".format(r.url))
     print("Aborting...")
     sys.exit(0)
+  print("Parsing html...") if verbose else None
   soup = BeautifulSoup(r.text, 'html.parser')
   results = soup.find_all('span', class_='difficulty_number')[0]
   rating = results.text
+  print("Problem rating: %s" % rating) if verbose else None
   return rating
 
 
@@ -216,33 +221,36 @@ Returns: None
 """
 def show_description():
   problem_id = os.path.basename(os.getcwd())
+  print(f"Problem ID: {problem_id}") if verbose else None
+  print(f"Problem config: {problems_conf}") if verbose else None
   if problem_id not in problems_conf:
     print("Invalid problem ID: %s" % problem_id)
     print("Aborting...")
     sys.exit(0)
-  if "default_browser" not in user_conf:
-    set_default_browser()
+  # if "default_browser" not in user_conf:
+  #   set_default_browser()
   if input('Open in browser? (Y/N): ').lower() in {'y', 'yes'}:
-    platform = sys.platform
-    if platform == 'darwin':
-      call = ""
-      if user_conf["default_browser"] == "chrome":
-        call = "open -a '/Applications/Google Chrome.app' 'https://open.kattis.com/problems/" + problem_id + "'"
-      else:
-        call = "open -a '/Applications/Firefox.app' 'https://open.kattis.com/problems/" + problem_id + "'"
-      os.system(call)
-    elif platform == 'linux':
-      call = ""
-      if user_conf["default_browser"] == "chrome":
-        call = os.system("which google-chrome")
-      else:
-        call = os.system("which firefox")
-      call += " 'https://open.kattis.com/problems/" + problem_id + "'"
-      if call.startswith("/"):
-        os.system(call)
-      else:
-        print("Unable to find valid binary for Chrome or Firefox")
-        print("Aborting...")
+    webbrowser.open("https://open.kattis.com/problems/" + problem_id)
+    # platform = sys.platform
+    # if platform == 'darwin':
+    #   call = ""
+    #   if user_conf["default_browser"] == "chrome":
+    #     call = "open -a '/Applications/Google Chrome.app' 'https://open.kattis.com/problems/" + problem_id + "'"
+    #   else:
+    #     call = "open -a '/Applications/Firefox.app' 'https://open.kattis.com/problems/" + problem_id + "'"
+    #   os.system(call)
+    # elif platform == 'linux':
+    #   call = ""
+    #   if user_conf["default_browser"] == "chrome":
+    #     call = os.system("which google-chrome")
+    #   else:
+    #     call = os.system("which firefox")
+    #   call += " 'https://open.kattis.com/problems/" + problem_id + "'"
+    #   if call.startswith("/"):
+    #     os.system(call)
+    #   else:
+    #     print("Unable to find valid binary for Chrome or Firefox")
+    #     print("Aborting...")
 
 """
 Sets the default web browser for displaying problem descriptions
@@ -1062,13 +1070,12 @@ def usage_msg():
 
 
 def main():
-  global verbose, user_conf, problems_conf
+  global verbose, user_conf, problems_conf, modified
   # load or create conf files if they dont exist
   # print(f"Loading configuration files from {USER_CONF_PATH} and {PROBLEMS_CONF_PATH}")
   if not os.path.exists(USER_CONF_PATH) or not os.path.exists(PROBLEMS_CONF_PATH):
     print("One or more configuration files are missing")
     sys.exit(0)
-  user_conf = None
   with open(USER_CONF_PATH, "r") as f:
     user_conf = json.load(f)
   if not user_conf:
@@ -1079,9 +1086,9 @@ def main():
       "ids_last_updated": str(datetime.now()),
       "ratings_update_period": 72
     }
+    modified = True
   # should have been downloaded with katti
-  problems_conf = None
-  with open(USER_CONF_PATH, "r") as f:
+  with open(PROBLEMS_CONF_PATH, "r") as f:
     problems_conf = json.load(f)
 
   # add command line args
