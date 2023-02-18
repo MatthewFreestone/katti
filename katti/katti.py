@@ -15,11 +15,9 @@ from bs4 import BeautifulSoup
 
 # for customization of arg parser
 class Parser(argparse.ArgumentParser):
-  def random_extra(self):
-    pass
-  # def _check_value(self, action, value):
-  #   if action.choices is not None and value not in action.choices:
-  #     raise argparse.ArgumentError(action, "invalid option")
+  def _check_value(self, action, value):
+    if action.choices is not None and value not in action.choices:
+      raise argparse.ArgumentError(action, "invalid option")
 
 # global verbose option
 verbose = False
@@ -55,8 +53,8 @@ DEFAULT_HIST_SIZE = 100
 # user config files
 user_conf = None
 problems_conf = None
-USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'config/config.json')
-PROBLEMS_CONF_PATH = USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'config/problem_ids.json')
+USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'config.json')
+PROBLEMS_CONF_PATH = pkg_resources.resource_filename(__name__, 'problem_ids.json')
 
 HOME = os.path.expanduser('~')
 ZSH_COMP_PATH = os.path.join(HOME, ".config/zsh/custom_completions/_katti")
@@ -204,8 +202,9 @@ def get_problem_rating(problem_id):
     print("URL <{}> returned non 200 status".format(r.url))
     print("Aborting...")
     sys.exit(0)
-  search = re.findall("Difficulty:[ </>a-z]*[0-9]\.[0-9]", r.text)[0]
-  rating = search.split('>')[-1]
+  soup = BeautifulSoup(r.text, 'html.parser')
+  results = soup.find_all('span', class_='difficulty_number')[0]
+  rating = results.text
   return rating
 
 
@@ -1065,9 +1064,14 @@ def usage_msg():
 def main():
   global verbose, user_conf, problems_conf
   # load or create conf files if they dont exist
-  if os.path.exists(USER_CONF_PATH):
-    user_conf = json.load(open(USER_CONF_PATH))
-  else:
+  # print(f"Loading configuration files from {USER_CONF_PATH} and {PROBLEMS_CONF_PATH}")
+  if not os.path.exists(USER_CONF_PATH) or not os.path.exists(PROBLEMS_CONF_PATH):
+    print("One or more configuration files are missing")
+    sys.exit(0)
+  user_conf = None
+  with open(USER_CONF_PATH, "r") as f:
+    user_conf = json.load(f)
+  if not user_conf:
     user_conf = {
       "solved": [],
       "history": [],
@@ -1076,13 +1080,10 @@ def main():
       "ratings_update_period": 72
     }
   # should have been downloaded with katti
-  if os.path.exists(PROBLEMS_CONF_PATH):
-    problems_conf = json.load(open(PROBLEMS_CONF_PATH))
-  else:
-    print("Your problem ids JSON file appears to be corrupted")
-    print("Please download and install a new one at https://github.com/andrewjmcgehee/katti-automation")
-    print("Aborting...")
-    sys.exit(0)
+  problems_conf = None
+  with open(USER_CONF_PATH, "r") as f:
+    problems_conf = json.load(f)
+
   # add command line args
   arg_parser = Parser(usage=usage_msg())
   arg_parser.add_argument(

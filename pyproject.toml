@@ -1,0 +1,14 @@
+[project]
+name = "katti"
+version = "0.0.1"
+dependencies = [
+    "requests",
+    "beautifulsoup4",
+]
+
+[project.scripts]
+katti = "katti.katti:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
