@@ -3,6 +3,8 @@ import os
 import sys
 import json
 import argparse
+import datetime
+from katti import webkattis, configloader
 
 
 class colors:
@@ -20,7 +22,6 @@ class colors:
 USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'config.json')
 PROBLEMS_CONF_PATH = pkg_resources.resource_filename(
     __name__, 'problem_ids.json')
-DEFAULT_HIST_SIZE = 100
 
 # HOME = os.path.expanduser('~')
 # ZSH_COMP_PATH = os.path.join(HOME, ".config/zsh/custom_completions/_katti")
@@ -32,31 +33,11 @@ class Parser(argparse.ArgumentParser):
             raise argparse.ArgumentError(action, "invalid option")
 
 def main():
-    # check for config files
-    if not os.path.exists(USER_CONF_PATH) or not os.path.exists(PROBLEMS_CONF_PATH):
-        print(f"{colors.FAIL}One or more configuration files are missing {colors.ENDC}")
-        print(f"{colors.FAIL}Please reinstall katti {colors.ENDC}")
-        sys.exit(1)
-    # load user config
-    user_conf = None
-    with open(USER_CONF_PATH, "r") as f:
-        user_conf = json.load(f)
-    if not user_conf:
-        user_conf = {
-            "solved": [],
-            "history": [],
-            "history_size": DEFAULT_HIST_SIZE,
-            "ids_last_updated": str(datetime.now()),
-            "ratings_update_period": 72
-        }
-        modified = True
-    # should have been downloaded with katti
-    problems_conf = None
-    with open(PROBLEMS_CONF_PATH, "r") as f:
-        problems_conf = json.load(f)
+    user_conf = configloader.load_user_config(USER_CONF_PATH)
+    problems_conf = configloader.load_problems_config(PROBLEMS_CONF_PATH)
 
     # add command line args
-    arg_parser = Parser(usage=usage_msg())
+    arg_parser = Parser(prog="katti", description="A command line tool testing and submitting kattis problems.")
     arg_parser.add_argument(
         "-g",
         "--get",
@@ -72,10 +53,10 @@ def main():
     arg_parser.add_argument(
         "-v", "--verbose", help="receive verbose outputs", action="store_true")
     arg_parser.add_argument(
-        "-d", "--description", help="display a problem's description in chrome", action="store_true")
+        "-d", "--description", help="display a problem's description in chrome", metavar="<problem-id>")
     arg_parser.add_argument("-b", "--default_browser",
                             help="set the default browser to show problem descriptions", action="store_true")
-    arg_parser.add_argument("--add", metavar="<problem_id",
+    arg_parser.add_argument("--add", metavar="<problem_id>",
                             help="add a problem id to your problem config file")
     arg_parser.add_argument("--random", metavar="<rating>",
                             help="get a random kattis problem with a given rating")
@@ -106,7 +87,7 @@ def main():
     elif args.default_browser:
         set_default_browser()
     elif args.description:
-        show_description()
+        webkattis.show_description(args.description, problems_config=problems_conf, verbose=verbose)
     elif args.stats:
         get_stats()
     elif args.history:
@@ -117,17 +98,10 @@ def main():
         set_update_period(args.update_period)
     elif args.update_zsh_completions:
         update_zsh_completions()
-    else:
-        print("usage:", usage_msg())
-    # update conf files if needed
-    if modified:
-        with open(USER_CONF_PATH, mode="w") as f:
-            f.write(json.dumps(user_conf))
-            f.close()
-        with open(PROBLEMS_CONF_PATH, mode="w") as f:
-            f.write(json.dumps(problems_conf))
-            f.close()
 
+    # update conf files if needed
+    configloader.save_user_config(USER_CONF_PATH, user_conf)
+    configloader.save_problems_config(PROBLEMS_CONF_PATH, problems_conf)
 
 if __name__ == "__main__":
     main()
