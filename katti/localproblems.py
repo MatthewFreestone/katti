@@ -5,6 +5,8 @@ import os
 import sys
 from zipfile import ZipFile
 from datetime import datetime
+from typing import List, Tuple
+import re
 
 # supported programming languages
 _suported_langs = {
@@ -227,3 +229,224 @@ def get_random_problem(rating: str, user_conf: dict, problems_conf: dict, verbos
             webkattis.show_description(pick, verbose=verbose)
         return
     print("It appears you have solved all problems rated %.1f - %.1f" % (rating, rating + 0.9))
+
+def run(problems_conf, verbose: bool = False) -> None:
+    """ Runs all the sample inputs for a given kattis problem and checks them for
+    basic correctness (does not check relative error)
+
+    Parameters:
+    -----------
+    verbose: bool
+        A boolean representing whether or not to print verbose output
+    """
+    file_name = os.path.basename(os.getcwd())
+    if file_name not in problems_conf:
+        print("Current directory does not match a problem id")
+        print("Please cd into the directory of the problem you want to test")
+        sys.exit(1)
+    # find which language to use
+    extension = get_source_extension(file_name, verbose=verbose)
+    samples, answers = get_samples_and_answers(verbose=verbose)
+    executable = run_compiler(file_name, extension)
+    if executable is not None:
+        if samples and answers:
+            run_test_cases(executable, samples, answers)
+        else:
+            print("No sample inputs and answers found")
+            print("Aborting...")
+    else:
+        print("No executable found")
+        print("Aborting...")
+
+def get_source_extension(problem_id, verbose: bool = False, specific_file: str = None):
+    """Helper function to find a problem's sorce file extension
+
+    Parameters:
+    -----------
+    problem_id: str
+        A string representing the problem id
+    verbose: bool
+        A boolean representing whether or not to print verbose output
+    """
+    if specific_file is not None:
+        base, extension = os.path.splitext(os.path.basename(specific_file))
+        if base == problem_id and extension in _extension_to_lang:
+            return extension
+        else:
+            print(f"File {specific_file} is not a valid source file")
+            print("Aborting...")
+            sys.exit(1)
+
+    for f in os.listdir():
+        base, extension = os.path.splitext(os.path.basename(f))
+        if base == problem_id and extension in _extension_to_lang:
+            print(f"Found source file {f}") if verbose else None
+            return extension
+    print("No suitable source files found")
+    print(f"Currently Supported Extensions: {_extension_to_lang.keys()}")
+    print("Aborting...")
+    sys.exit(1)
+
+def get_samples_and_answers(verbose: bool = False) -> Tuple[List[str], List[str]]:
+    """Helper function to get sample inputs and outputs for comparison
+
+    Parameters:
+    -----------
+    verbose: bool
+        A boolean representing whether or not to print verbose output
+
+    Returns:
+    --------
+    A tuple of two lists, the first containing the names sample input files and the second
+    containing the names of the sample output files
+
+    """
+    samples = []
+    answers = []
+    for f in os.listdir():
+        _, extension = os.path.splitext(os.path.basename(f))
+        if extension == ".in":
+            samples.append(f)
+        if extension == ".ans":
+            answers.append(f)
+    print(f"Found {len(samples)} sample inputs and {len(answers)} sample outputs") if verbose else None
+    return (samples, answers)
+
+
+def run_compiler(file_name: str, extension: str, verbose = False) -> str:
+    """Helper function for run() method. Compiles the code for compiled languages and checks
+    existence of interpreter for interpreted languages
+
+    Parameters:
+    ----------
+    file_name: str
+        A string representing the name of the source file
+    extension: str
+        A string representing the extension of the source file
+    verbose: bool
+        A boolean representing whether or not to print verbose output
+
+    Returns:
+    --------
+    A string representing a system call to run the source code, or None on failure
+    """
+    status = 1
+    if extension == ".cpp":
+        # check presence of g++ compiler
+        status = os.system("which -s g++")
+        if status != 0:
+            print("Unable to locate g++ compiler")
+            print("Aborting...")
+            return None
+        # compile the code
+        print("Compiling %s..." % (file_name + extension)) if verbose else None
+        os.system("g++ -std=c++11 %s" % (file_name + extension))
+        return "./a.out"
+    if extension == ".java":
+        # check existence of javac compiler
+        status = os.system("which -s javac")
+        if status != 0:
+            print("Unable to locate javac compiler")
+            print("Aborting...")
+            return None
+        # compile the code
+        print("Compiling %s..." % (file_name + extension)) if verbose else None
+        os.system("javac %s" % (file_name + extension))
+        return "java " + file_name
+    if extension == ".py":
+        print("Trying to infer Python version...") if verbose else None
+        version = infer_python_version(file_name + extension)
+        python_warning = (
+        "NOTE: Katti only uses the aliases 'python2', 'python3', and 'python' for python interpreters"
+        + "\nPlease make sure the appropriate aliases are in your PATH environment variable"
+        + "\nAborting..."
+        )
+        if version == 2:
+            status = os.system("which -s python2")
+            if status != 0:
+                print("Unable to locate Python 2 interpreter")
+                print(python_warning)
+                return None
+            return "python2 " + file_name + extension
+        else:
+            status = os.system("which -s python3")
+            if status != 0:
+                print("python3 alias failed") if verbose else None
+                status = os.system("which -s python")
+                if status != 0:
+                    print("Unable to locate Python 3 interpreter")
+                    print(python_warning)
+                    return None
+            return "python3 " + file_name + extension
+
+
+def run_test_cases(executable: str, sample_files: List[str], expected: List[str], verbose=False):
+    """Runs a given kattis problem through the provided sample inputs. Assumes
+    code is already compiled
+
+    Parameters:
+    -----------
+    executable: str
+        A string representing a system call to run the source code
+    sample_files: List[str]
+        A list of strings representing the names of the sample input files
+    expected: List[str]
+        A list of strings representing the names of the sample output files
+    verbose: bool
+        A boolean representing whether or not to print verbose output
+    """
+    print("Running test cases...")
+    for i, sample in enumerate(sample_files):
+        fail = False
+        # get rid of .in extension in order to match with corresponding .ans file
+        base = '.'.join(sample.split('.')[:-1])
+        executable += " < " +  sample + " > test.out"
+        os.system(executable)
+        status = os.system("cmp test.out %s.ans" % base)
+        if status != 0:
+            if verbose:
+                print("FAIL on sample input %s" % sample)
+                print("<<< Expected Output >>>")
+                with open(base + ".ans", mode="r") as f:
+                    print(f.read())
+                f.close()
+                print("<<< Actual Output >>>")
+                with open("test.out", mode="r") as f:
+                    print(f.read())
+                f.close()
+            else:
+                print("-", end="")
+        else:
+            if verbose:
+                print("PASS on sample input: %s" % sample)
+            else:
+                print("+", end="")
+        os.system("rm *.out 2>/dev/null")
+    os.system("rm *.class 2>/dev/null")
+    # formatting
+    print()
+
+
+def infer_python_version(filename) -> int:
+    """Helper function to determine if a python file is python2 or python3. Taken from kattis's submit.py
+
+    Parameters:
+    -----------
+    file_name: str
+        The name of the file to check
+    
+    Returns:
+    --------
+    An integer representing the python version of the file, 2 or 3
+    """
+    python2 = re.compile(r'^\s*\bprint\b *[^ \(\),\]]|\braw_input\b')
+    with open(filename) as f:
+        for index, line in enumerate(f):
+            if index == 0 and line.startswith('#!'):
+                if 'python2' in line:
+                    return 2
+                if 'python3' in line:
+                    return 3
+            if python2.search(line.split('#')[0]):
+                return 2
+    return 3
