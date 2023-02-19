@@ -7,7 +7,7 @@ dependencies = [
 ]
 
 [project.scripts]
-katti = "katti.katti:main"
+katti = "katti.main:main"
 
 [build-system]
 requires = ["setuptools"]

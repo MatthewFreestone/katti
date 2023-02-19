@@ -1,6 +1,5 @@
 import argparse
 from bisect import bisect
-import configparser
 from datetime import datetime
 import json
 import multiprocessing as mp
@@ -14,6 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 from zipfile import ZipFile
 import webbrowser
+from submiter import get_config, parse_config
 
 # for customization of arg parser
 class Parser(argparse.ArgumentParser):
@@ -38,13 +38,12 @@ _extension_to_lang = {
   ".py": "Python"
 }
 
-# headers for submission
-_HEADERS = { "User-Agent": "kattis-cli-submit" }
-
 # URLs
 _LOGIN_URL = "https://open.kattis.com/login"
 _SUBMIT_URL = "https://open.kattis.com/submit"
 _STATUS_URL = "https://open.kattis.com/submissions/"
+
+_HEADERS = { "User-Agent": "kattis-cli-submit" }
 
 # maximum number of times to check a submissions status
 MAX_SUBMISSION_CHECKS = 60
@@ -773,22 +772,6 @@ def report_submission_status(response):
 
 
 """
-A helper function to load a users kattis rc file
-
-Params: None
-Returns: A ConfigParser object
-"""
-def get_config():
-  config = configparser.ConfigParser()
-  if not config.read([os.path.join(os.getenv("HOME"), ".kattisrc")]):
-    print("Unable to locate .kattisrc file")
-    print("Please navigate to https://open.kattis.com/help/submit to download a new one")
-    print("Aborting...")
-    sys.exit(0)
-  return config
-
-
-"""
 A helper functiont to log a user in to kattis
 
 Params: A ConfigParser object config
@@ -804,26 +787,6 @@ def login(config):
   return requests.post(_LOGIN_URL, data=login_creds, headers=_HEADERS)
 
 
-"""
-Helper function for login. Parses a config file for username and submit token.
-On failure to parse config file, exits control flow
-
-Params: A ConfigParser object
-Returns: A tuple of username and token
-"""
-def parse_config(config):
-  username = config.get("user", "username")
-  token = None
-  try:
-    token = config.get("user", "token")
-  except configparser.NoOptionError:
-    pass
-  if token is None:
-    print("Corrupted .katisrc file")
-    print("Please navigate to https://open.kattis.com/help/submit and download a new .kattisrc")
-    print("Aborting...")
-    sys.exit(0)
-  return (username, token)
 
 
 """
