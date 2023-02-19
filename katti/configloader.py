@@ -1,6 +1,8 @@
 import os
 import datetime
 import json
+import configparser
+import sys
 
 user_config_changed = False
 probems_config_changed = False
@@ -64,7 +66,6 @@ def load_problems_config(config_path: str) -> dict:
     else:
         with open(config_path, "r") as f:
             problems_list = json.load(f)
-    print(problems_list)
     return problems_list
 
 def problem_config_changed():
@@ -103,3 +104,39 @@ def save_problems_config(config_path: str, problems_config: dict):
         with open(config_path, "w") as f:
             json.dump(problems_config, f)
         probems_config_changed = False
+
+def get_kattis_config(config_path: str) -> tuple:
+    """Helper function to load a users .kattisrc file and parse it
+
+    Parameters:
+    ----------
+    config_path: str
+        A string representing the absolute path to the .kattisrc file
+
+    Returns:
+    -------
+    tuple
+        A tuple containing (username, token) as strings
+    """
+    config = configparser.ConfigParser()
+    if not config.read([config_path]):
+        print("Unable to locate .kattisrc file")
+        print(
+            "Please navigate to https://open.kattis.com/help/submit to download a new .kattisrc")
+        print("Aborting...")
+        sys.exit(1)
+
+    username = config.get("user", "username")
+    token = None
+    try:
+        token = config.get("user", "token")
+    except configparser.NoOptionError:
+        pass
+    if token is None:
+        print("Corrupted .kattisrc file")
+        print("Please navigate to https://open.kattis.com/help/submit and download a new .kattisrc")
+        print("Aborting...")
+        sys.exit(1)
+    return (username, token)
+
+

@@ -4,7 +4,7 @@ import sys
 import json
 import argparse
 import datetime
-from katti import webkattis, configloader
+from katti import webkattis, configloader, localproblems
 
 
 class colors:
@@ -22,22 +22,29 @@ class colors:
 USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'config.json')
 PROBLEMS_CONF_PATH = pkg_resources.resource_filename(
     __name__, 'problem_ids.json')
+KATTIS_CONF_PATH = os.path.join(os.path.expanduser('~'), '.kattisrc')
 
 # HOME = os.path.expanduser('~')
 # ZSH_COMP_PATH = os.path.join(HOME, ".config/zsh/custom_completions/_katti")
 
 # for customization of arg parser
+
+
 class Parser(argparse.ArgumentParser):
     def _check_value(self, action, value):
         if action.choices is not None and value not in action.choices:
             raise argparse.ArgumentError(action, "invalid option")
 
+
 def main():
+    # TODO these 3 operations are potentially blocking, consider moving to separate threads
     user_conf = configloader.load_user_config(USER_CONF_PATH)
     problems_conf = configloader.load_problems_config(PROBLEMS_CONF_PATH)
+    kattis_conf = configloader.get_kattis_config(KATTIS_CONF_PATH)
 
     # add command line args
-    arg_parser = Parser(prog="katti", description="A command line tool testing and submitting kattis problems.")
+    arg_parser = Parser(
+        prog="katti", description="A command line tool testing and submitting kattis problems.")
     arg_parser.add_argument(
         "-g",
         "--get",
@@ -54,8 +61,6 @@ def main():
         "-v", "--verbose", help="receive verbose outputs", action="store_true")
     arg_parser.add_argument(
         "-d", "--description", help="display a problem's description in chrome", metavar="<problem-id>")
-    arg_parser.add_argument("-b", "--default_browser",
-                            help="set the default browser to show problem descriptions", action="store_true")
     arg_parser.add_argument("--add", metavar="<problem_id>",
                             help="add a problem id to your problem config file")
     arg_parser.add_argument("--random", metavar="<rating>",
@@ -75,7 +80,9 @@ def main():
     verbose = args.verbose
     # handle args passed in
     if args.get:
-        get(args.get)
+        preferred_language = user_conf.get("preferred_language", None)
+        localproblems.get_problem(
+            args.get, problems_conf, preferred_language, verbose=verbose)
     elif args.random:
         get_random(args.random)
     elif args.run:
@@ -84,10 +91,9 @@ def main():
         post()
     elif args.add:
         add(args.add)
-    elif args.default_browser:
-        set_default_browser()
     elif args.description:
-        webkattis.show_description(args.description, problems_config=problems_conf, verbose=verbose)
+        problem_id = args.description
+        webkattis.show_description(problem_id, verbose=verbose)
     elif args.stats:
         get_stats()
     elif args.history:
@@ -102,6 +108,7 @@ def main():
     # update conf files if needed
     configloader.save_user_config(USER_CONF_PATH, user_conf)
     configloader.save_problems_config(PROBLEMS_CONF_PATH, problems_conf)
+
 
 if __name__ == "__main__":
     main()
