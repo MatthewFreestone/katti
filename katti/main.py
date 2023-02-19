@@ -64,7 +64,7 @@ def main():
     arg_parser.add_argument("--add", metavar="<problem_id>",
                             help="add a problem id to your problem config file")
     arg_parser.add_argument("--random", metavar="<rating>",
-                            help="get a random kattis problem with a given rating")
+                            help="selects a random added kattis problem with a given rating")
     arg_parser.add_argument(
         "--stats", help="get kattis stats if possible", action="store_true")
     arg_parser.add_argument(
@@ -84,13 +84,15 @@ def main():
         localproblems.get_problem(
             args.get, problems_conf, preferred_language, verbose=verbose)
     elif args.random:
-        get_random(args.random)
+        rating = args.random
+        localproblems.get_random_problem(rating, user_conf, problems_conf, verbose=verbose)
     elif args.run:
         run()
     elif args.post:
         post()
     elif args.add:
-        add(args.add)
+        problem_id = args.add
+        webkattis.add_problem(problem_id, problems_conf, verbose=verbose)
     elif args.description:
         problem_id = args.description
         webkattis.show_description(problem_id, verbose=verbose)

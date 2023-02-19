@@ -1,5 +1,5 @@
 import os
-import datetime
+from datetime import datetime
 import json
 import configparser
 import sys
@@ -72,6 +72,11 @@ def problem_config_changed():
     """Ensures that the problems config file is saved when the program exits"""
     global probems_config_changed
     probems_config_changed = True
+
+def user_config_changed():
+    """Ensures that the user config file is saved when the program exits"""
+    global user_config_changed
+    user_config_changed = True
 
 def save_user_config(config_path: str, user_config: dict):
     """Saves the user config file
