@@ -7,6 +7,7 @@ from zipfile import ZipFile
 from datetime import datetime
 from typing import List, Tuple
 import re
+import filecmp
 
 # supported programming languages
 _suported_langs = {
@@ -250,7 +251,7 @@ def run(problems_conf, verbose: bool = False) -> None:
     executable = run_compiler(file_name, extension)
     if executable is not None:
         if samples and answers:
-            run_test_cases(executable, samples, answers)
+            run_test_cases(executable, samples, answers, verbose=verbose)
         else:
             print("No sample inputs and answers found")
             print("Aborting...")
@@ -333,7 +334,7 @@ def run_compiler(file_name: str, extension: str, verbose = False) -> str:
     status = 1
     if extension == ".cpp":
         # check presence of g++ compiler
-        status = os.system("which -s g++")
+        status = os.system("which g++")
         if status != 0:
             print("Unable to locate g++ compiler")
             print("Aborting...")
@@ -344,7 +345,7 @@ def run_compiler(file_name: str, extension: str, verbose = False) -> str:
         return "./a.out"
     if extension == ".java":
         # check existence of javac compiler
-        status = os.system("which -s javac")
+        status = os.system("which javac")
         if status != 0:
             print("Unable to locate javac compiler")
             print("Aborting...")
@@ -362,21 +363,23 @@ def run_compiler(file_name: str, extension: str, verbose = False) -> str:
         + "\nAborting..."
         )
         if version == 2:
-            status = os.system("which -s python2")
+            status = os.system("which python2")
             if status != 0:
                 print("Unable to locate Python 2 interpreter")
                 print(python_warning)
                 return None
             return "python2 " + file_name + extension
         else:
-            status = os.system("which -s python3")
+            status = os.system("which python3")
             if status != 0:
                 print("python3 alias failed") if verbose else None
-                status = os.system("which -s python")
+                status = os.system("which python")
                 if status != 0:
                     print("Unable to locate Python 3 interpreter")
                     print(python_warning)
                     return None
+                else:
+                    return "python " + file_name + extension
             return "python3 " + file_name + extension
 
 
@@ -395,15 +398,17 @@ def run_test_cases(executable: str, sample_files: List[str], expected: List[str]
     verbose: bool
         A boolean representing whether or not to print verbose output
     """
-    print("Running test cases...")
+    print("Running test cases...") if verbose else None
     for i, sample in enumerate(sample_files):
         fail = False
         # get rid of .in extension in order to match with corresponding .ans file
         base = '.'.join(sample.split('.')[:-1])
         executable += " < " +  sample + " > test.out"
         os.system(executable)
-        status = os.system("cmp test.out %s.ans" % base)
-        if status != 0:
+        files_equal = filecmp.cmp("test.out", base + ".ans", shallow=False)
+        status = os.system("diff test.out %s.ans" % base)
+        # if status != 0:
+        if not files_equal:
             if verbose:
                 print("FAIL on sample input %s" % sample)
                 print("<<< Expected Output >>>")
@@ -421,8 +426,8 @@ def run_test_cases(executable: str, sample_files: List[str], expected: List[str]
                 print("PASS on sample input: %s" % sample)
             else:
                 print("+", end="")
-        os.system("rm *.out 2>/dev/null")
-    os.system("rm *.class 2>/dev/null")
+        os.system("rm *.out")
+    os.system("rm *.class")
     # formatting
     print()
 

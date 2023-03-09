@@ -87,7 +87,7 @@ def main():
         rating = args.random
         localproblems.get_random_problem(rating, user_conf, problems_conf, verbose=verbose)
     elif args.run:
-        run()
+        localproblems.run(problems_conf, verbose=verbose)
     elif args.post:
         post()
     elif args.add:
