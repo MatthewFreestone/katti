@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import List, Tuple
 import re
 import filecmp
+import subprocess
 
 # supported programming languages
 _suported_langs = {
@@ -21,6 +22,13 @@ _extension_to_lang = {
     ".cpp": "C++",
     ".java": "Java",
     ".py": "Python"
+}
+
+_junk_extensions = {
+    "class",
+    "exe",
+    "out",
+    "o",
 }
 
 
@@ -248,7 +256,7 @@ def run(problems_conf, verbose: bool = False) -> None:
     # find which language to use
     extension = get_source_extension(file_name, verbose=verbose)
     samples, answers = get_samples_and_answers(verbose=verbose)
-    executable = run_compiler(file_name, extension)
+    executable = run_compiler(file_name, extension, verbose=verbose)
     if executable is not None:
         if samples and answers:
             run_test_cases(executable, samples, answers, verbose=verbose)
@@ -334,7 +342,8 @@ def run_compiler(file_name: str, extension: str, verbose = False) -> str:
     status = 1
     if extension == ".cpp":
         # check presence of g++ compiler
-        status = os.system("which g++")
+        # status = os.system("which g++")
+        status = subprocess.run(['g++', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if status != 0:
             print("Unable to locate g++ compiler")
             print("Aborting...")
@@ -357,11 +366,12 @@ def run_compiler(file_name: str, extension: str, verbose = False) -> str:
     if extension == ".py":
         print("Trying to infer Python version...") if verbose else None
         version = infer_python_version(file_name + extension)
-        python_warning = (
-        "NOTE: Katti only uses the aliases 'python2', 'python3', and 'python' for python interpreters"
-        + "\nPlease make sure the appropriate aliases are in your PATH environment variable"
-        + "\nAborting..."
-        )
+        print("Python version inferred as %d" % version) if verbose else None
+        python_warning = '''
+        NOTE: Katti only uses the aliases 'python2', 'python3', and 'python' for python interpreters
+        Please make sure the appropriate aliases are in your PATH environment variable
+        Aborting...
+        '''
         if version == 2:
             status = os.system("which python2")
             if status != 0:
@@ -370,10 +380,12 @@ def run_compiler(file_name: str, extension: str, verbose = False) -> str:
                 return None
             return "python2 " + file_name + extension
         else:
-            status = os.system("which python3")
+            result = subprocess.run(['python3', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            status = result.returncode
             if status != 0:
-                print("python3 alias failed") if verbose else None
-                status = os.system("which python")
+                print("python3 alias failed, trying python") if verbose else None
+                result = subprocess.run(['python', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                status = result.returncode
                 if status != 0:
                     print("Unable to locate Python 3 interpreter")
                     print(python_warning)
@@ -405,8 +417,18 @@ def run_test_cases(executable: str, sample_files: List[str], expected: List[str]
         base = '.'.join(sample.split('.')[:-1])
         executable += " < " +  sample + " > test.out"
         os.system(executable)
+
+        # replace crlf with lf
+        with open("test.out", mode="r", newline="\r\n") as f:
+            lines = f.readlines()
+        f.close()
+        with open("test.out", mode="w", newline="\n") as f:
+            for line in lines:
+                f.write(line.replace("\r\n", "\n"))
+        f.close()
+
         files_equal = filecmp.cmp("test.out", base + ".ans", shallow=False)
-        status = os.system("diff test.out %s.ans" % base)
+        # status = os.system("diff test.out %s.ans" % base)
         # if status != 0:
         if not files_equal:
             if verbose:
@@ -426,10 +448,30 @@ def run_test_cases(executable: str, sample_files: List[str], expected: List[str]
                 print("PASS on sample input: %s" % sample)
             else:
                 print("+", end="")
-        os.system("rm *.out")
-    os.system("rm *.class")
+        os.remove("test.out")
+        # os.system("rm *.out")
+    cleanup_after_run(verbose)
     # formatting
     print()
+
+def cleanup_after_run(verbose=False):
+    """Cleans up after a run() call by removing all compiled files
+
+    Parameters:
+    -----------
+    verbose: bool
+        A boolean representing whether or not to print verbose output
+    """
+    if verbose:
+        print("Cleaning up...") 
+    all_files = [item.split('.') for item in os.listdir()]
+    for *item, extension in all_files:
+        item = '.'.join(item)
+        if extension in _junk_extensions:
+            print("Removing %s.%s" % (item, extension)) if verbose else None
+            os.remove(item + "." + extension)
+    if verbose:
+        print("Done cleaning up")
 
 
 def infer_python_version(filename) -> int:
