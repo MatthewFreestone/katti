@@ -3,9 +3,12 @@ from datetime import datetime
 import json
 import configparser
 import sys
+from collections import namedtuple
 
 user_config_changed = False
 probems_config_changed = False
+
+KattisConfig = namedtuple("KattisConfig", "username url token" )
 
 DEFAULT_HIST_SIZE = 100
 
@@ -110,7 +113,7 @@ def save_problems_config(config_path: str, problems_config: dict):
             json.dump(problems_config, f)
         probems_config_changed = False
 
-def get_kattis_config(config_path: str) -> tuple:
+def get_kattis_config(config_path: str) -> KattisConfig:
     """Helper function to load a users .kattisrc file and parse it
 
     Parameters:
@@ -142,6 +145,6 @@ def get_kattis_config(config_path: str) -> tuple:
         print("Please navigate to https://open.kattis.com/help/submit and download a new .kattisrc")
         print("Aborting...")
         sys.exit(1)
-    return (username, token)
+    return KattisConfig(username, url, token)
 
 

@@ -89,7 +89,7 @@ def main():
     elif args.run:
         localproblems.run(problems_conf, verbose=verbose)
     elif args.post:
-        post()
+        webkattis.post(kattis_conf, verbose=verbose)
     elif args.add:
         problem_id = args.add
         webkattis.add_problem(problem_id, problems_conf, verbose=verbose)

@@ -142,4 +142,78 @@ def add_problem(problem_id: str, problem_conf: dict, verbose=False):
     # add problem to config
     problem_conf[problem_id] = problem_rating
     configloader.problem_config_changed()
-    
+
+def post(kattis_config, verbose=False):
+    config = get_config()
+    problem_id = os.path.basename(os.getcwd())
+    extension = get_source_extension(problem_id)
+    lang = _extension_to_lang.get(extension)
+    # only needed for Java submissions
+    mainclass = problem_id if extension == ".java" else None
+    # language to submit as
+    if lang == "Python":
+        version = determine_python_version(problem_id + extension)
+        lang = "Python " + str(version)
+    # list of files to submit
+    submission_files = [problem_id + extension]
+    try:
+        login_response = login(config)
+    except requests.exceptions.RequestException as e:
+        print("Login Connection Failed:", e)
+        sys.exit(0)
+    report_login_status(login_response)
+    confirm_submission(problem_id, lang, submission_files)
+    # try post call
+    try:
+        submit_response = submit(
+        login_response.cookies,
+        problem_id,
+        lang,
+        submission_files,
+        mainclass
+        )
+    except requests.exceptions.RequestException as e:
+        print("Submit Connection Failed:", e)
+        sys.exit(0)
+    report_submission_status(submit_response)
+    # print submission id message
+    plain_text_response = submit_response.content.decode("utf-8").replace("<br />", "\n")
+    print(plain_text_response)
+    # check the submission acceptance status
+    submission_id = plain_text_response.split()[-1].rstrip(".")
+    check_submission_status(problem_id + extension, submission_id)
+
+"""
+A helper functiont to log a user in to kattis
+Params: A ConfigParser object config
+Returns: A requests object
+"""
+def login(config):
+  username, token = parse_config(config)
+  login_creds = {
+    "user": username,
+    "token": token,
+    "script": "true"
+  }
+  return requests.post(_LOGIN_URL, data=login_creds, headers=_HEADERS)
+
+
+def parse_config(config):
+    """
+    Helper function for login. Parses a config file for username and submit token.
+    On failure to parse config file, exits control flow
+    Params: A ConfigParser object
+    Returns: A tuple of username and token
+    """
+    username = config.get("user", "username")
+    token = None
+    try:
+        token = config.get("user", "token")
+    except configparser.NoOptionError:
+        pass
+    if token is None:
+        print("Corrupted .katisrc file")
+        print("Please navigate to https://open.kattis.com/help/submit and download a new .kattisrc")
+        print("Aborting...")
+        sys.exit(0)
+    return (username, token)
