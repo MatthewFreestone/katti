@@ -124,7 +124,7 @@ def get_kattis_config(config_path: str) -> KattisConfig:
     Returns:
     -------
     tuple
-        A tuple containing (username, token) as strings
+        A tuple containing (username, url, token) as strings
     """
     config = configparser.ConfigParser()
     if not config.read([config_path]):
@@ -136,11 +136,13 @@ def get_kattis_config(config_path: str) -> KattisConfig:
 
     username = config.get("user", "username")
     token = None
+    url = None
     try:
         token = config.get("user", "token")
+        url = config.get("kattis", "hostname")
     except configparser.NoOptionError:
         pass
-    if token is None:
+    if token is None or url is None:
         print("Corrupted .kattisrc file")
         print("Please navigate to https://open.kattis.com/help/submit and download a new .kattisrc")
         print("Aborting...")

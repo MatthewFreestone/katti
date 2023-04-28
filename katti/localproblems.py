@@ -9,27 +9,28 @@ from typing import List, Tuple
 import re
 import filecmp
 import subprocess
+from katti.utils import SUPPORTED_LANGS, EXTENSION_TO_LANG, JUNK_EXTENSIONS, infer_python_version
 
-# supported programming languages
-_suported_langs = {
-    "cpp": ".cpp",
-    "c++": ".cpp",
-    "java": ".java",
-    "python": ".py"
-}
-# convert an extension to a submission language
-_extension_to_lang = {
-    ".cpp": "C++",
-    ".java": "Java",
-    ".py": "Python"
-}
+# # supported programming languages
+# _suported_langs = {
+#     "cpp": ".cpp",
+#     "c++": ".cpp",
+#     "java": ".java",
+#     "python": ".py"
+# }
+# # convert an extension to a submission language
+# _extension_to_lang = {
+#     ".cpp": "C++",
+#     ".java": "Java",
+#     ".py": "Python"
+# }
 
-_junk_extensions = {
-    "class",
-    "exe",
-    "out",
-    "o",
-}
+# _junk_extensions = {
+#     "class",
+#     "exe",
+#     "out",
+#     "o",
+# }
 
 
 def get_boilerplate(problem_id: str, rating: str, extension: str) -> tuple[str, str]:
@@ -138,10 +139,10 @@ def get_problem(problem_id, problems_config, preferred_language=None, verbose=Fa
     while True:
         language = input(input_string).lower()
         if language == "" and preferred_language is not None:
-            extension = _suported_langs[preferred_language]
+            extension = SUPPORTED_LANGS[preferred_language]
             break
-        if language in _suported_langs:
-            extension = _suported_langs[language]
+        if language in SUPPORTED_LANGS:
+            extension = SUPPORTED_LANGS[language]
             break
         print(f'Language "{language}" not suported...')
 
@@ -279,7 +280,7 @@ def get_source_extension(problem_id, verbose: bool = False, specific_file: str =
     """
     if specific_file is not None:
         base, extension = os.path.splitext(os.path.basename(specific_file))
-        if base == problem_id and extension in _extension_to_lang:
+        if base == problem_id and extension in EXTENSION_TO_LANG:
             return extension
         else:
             print(f"File {specific_file} is not a valid source file")
@@ -288,11 +289,11 @@ def get_source_extension(problem_id, verbose: bool = False, specific_file: str =
 
     for f in os.listdir():
         base, extension = os.path.splitext(os.path.basename(f))
-        if base == problem_id and extension in _extension_to_lang:
+        if base == problem_id and extension in EXTENSION_TO_LANG:
             print(f"Found source file {f}") if verbose else None
             return extension
     print("No suitable source files found")
-    print(f"Currently Supported Extensions: {_extension_to_lang.keys()}")
+    print(f"Currently Supported Extensions: {EXTENSION_TO_LANG.keys()}")
     print("Aborting...")
     sys.exit(1)
 
@@ -467,33 +468,8 @@ def cleanup_after_run(verbose=False):
     all_files = [item.split('.') for item in os.listdir()]
     for *item, extension in all_files:
         item = '.'.join(item)
-        if extension in _junk_extensions:
+        if extension in JUNK_EXTENSIONS:
             print("Removing %s.%s" % (item, extension)) if verbose else None
             os.remove(item + "." + extension)
     if verbose:
         print("Done cleaning up")
-
-
-def infer_python_version(filename) -> int:
-    """Helper function to determine if a python file is python2 or python3. Taken from kattis's submit.py
-
-    Parameters:
-    -----------
-    file_name: str
-        The name of the file to check
-    
-    Returns:
-    --------
-    An integer representing the python version of the file, 2 or 3
-    """
-    python2 = re.compile(r'^\s*\bprint\b *[^ \(\),\]]|\braw_input\b')
-    with open(filename) as f:
-        for index, line in enumerate(f):
-            if index == 0 and line.startswith('#!'):
-                if 'python2' in line:
-                    return 2
-                if 'python3' in line:
-                    return 3
-            if python2.search(line.split('#')[0]):
-                return 2
-    return 3

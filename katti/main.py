@@ -5,18 +5,7 @@ import json
 import argparse
 import datetime
 from katti import webkattis, configloader, localproblems
-
-
-class colors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+from katti.constants import colors
 
 
 USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'config.json')
@@ -89,23 +78,23 @@ def main():
     elif args.run:
         localproblems.run(problems_conf, verbose=verbose)
     elif args.post:
-        webkattis.post(kattis_conf, verbose=verbose)
+        webkattis.post(kattis_conf, user_conf, verbose=verbose)
     elif args.add:
         problem_id = args.add
         webkattis.add_problem(problem_id, problems_conf, verbose=verbose)
     elif args.description:
         problem_id = args.description
         webkattis.show_description(problem_id, verbose=verbose)
-    elif args.stats:
-        get_stats()
-    elif args.history:
-        get_history()
-    elif args.history_size:
-        handle_history_size(args.history_size)
-    elif args.update_period:
-        set_update_period(args.update_period)
-    elif args.update_zsh_completions:
-        update_zsh_completions()
+    # elif args.stats:
+    #     get_stats()
+    # elif args.history:
+    #     get_history()
+    # elif args.history_size:
+    #     handle_history_size(args.history_size)
+    # elif args.update_period:
+    #     set_update_period(args.update_period)
+    # elif args.update_zsh_completions:
+    #     update_zsh_completions()
 
     # update conf files if needed
     configloader.save_user_config(USER_CONF_PATH, user_conf)
