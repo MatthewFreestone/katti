@@ -2,6 +2,7 @@ import unittest.mock as mock
 import pytest
 from katti import configloader
 from pathlib import Path
+import os
 
 @pytest.fixture
 def sample_problem_config():
@@ -17,7 +18,7 @@ def default_user_config():
         "ratings_update_period": 72
     }
 
-def test_load_user_config(default_user_config):
+def test_load_user_config_empty(default_user_config):
     '''Config is empty'''
     mock_open = mock.mock_open()
     mock_os_path = mock.MagicMock()
@@ -25,7 +26,7 @@ def test_load_user_config(default_user_config):
     path = Path("./tmp").resolve()
     with mock.patch('__main__.open', mock_open):
         with mock.patch('os.path', mock_os_path):
-            player_conf = configloader.load_user_config(path)
+            user_conf = configloader.load_user_config(path)
     # should check that path exists
     mock_os_path.exists.assert_called_once_with(path)
 
@@ -33,6 +34,16 @@ def test_load_user_config(default_user_config):
     for key in default_user_config.keys():
         if key == "ids_last_updated":
             continue
-        assert default_user_config[key] == player_conf[key]
-    assert "ids_last_updated" in player_conf
-    
+        assert default_user_config[key] == user_conf[key]
+    assert "ids_last_updated" in user_conf
+
+def test_load_user_config_missing(tmp_path, default_user_config):
+    '''Config File completely missing'''
+    path = tmp_path / "config.json"
+
+    user_conf = configloader.load_user_config(path)
+    for key in default_user_config.keys():
+        if key == "ids_last_updated":
+            continue
+        assert default_user_config[key] == user_conf[key]
+    assert "ids_last_updated" in user_conf
