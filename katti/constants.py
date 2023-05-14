@@ -1,4 +1,6 @@
 MAX_SUBMISSION_CHECKS = 10
+
+
 class colors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'

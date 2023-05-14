@@ -22,6 +22,7 @@ JUNK_EXTENSIONS = {
     "o",
 }
 
+
 def get_source_extension(problem_id: str) -> str:
     """Helper function to get the extension of the source file for a problem.
 
@@ -39,7 +40,8 @@ def get_source_extension(problem_id: str) -> str:
         if base == problem_id and extension in EXTENSION_TO_LANG:
             return extension
     print("No suitable source files found")
-    print("Currently Supported Extensions: " + ", ".join(EXTENSION_TO_LANG.keys()))
+    print("Currently Supported Extensions: " +
+          ", ".join(EXTENSION_TO_LANG.keys()))
     print("Aborting...")
     raise Exception("No suitable source files found")
 
@@ -51,7 +53,7 @@ def infer_python_version(filename) -> int:
     -----------
     file_name: str
         The name of the file to check
-    
+
     Returns:
     --------
     An integer representing the python version of the file, 2 or 3

@@ -74,14 +74,16 @@ def main():
             args.get, problems_conf, kattis_conf, preferred_language, verbose=verbose)
     elif args.random:
         rating = args.random
-        localproblems.get_random_problem(rating, user_conf, problems_conf, kattis_conf, verbose=verbose)
+        localproblems.get_random_problem(
+            rating, user_conf, problems_conf, kattis_conf, verbose=verbose)
     elif args.run:
         localproblems.run(problems_conf, verbose=verbose)
     elif args.post:
         webkattis.post(kattis_conf, user_conf, verbose=verbose)
     elif args.add:
         problem_id = args.add
-        webkattis.add_problem(problem_id, problems_conf, kattis_conf, verbose=verbose)
+        webkattis.add_problem(problem_id, problems_conf,
+                              kattis_conf, verbose=verbose)
     elif args.description:
         problem_id = args.description
         webkattis.show_description(problem_id, kattis_conf, verbose=verbose)

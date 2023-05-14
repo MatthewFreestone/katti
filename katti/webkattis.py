@@ -41,6 +41,7 @@ def show_description(problem_id: str, kattis_config: configloader.KattisConfig, 
     url = f"{kattis_config.url}{_PROBLEMS_ENDING}{problem_id}"
     webbrowser.open(url)
 
+
 def get_problem_rating(problem_id: str, kattis_config: configloader.KattisConfig, verbose=False) -> float:
     """
     Helper function to get the current rating of problem from Kattis
@@ -59,7 +60,7 @@ def get_problem_rating(problem_id: str, kattis_config: configloader.KattisConfig
     str
         A string representing the problem rating
     """
-    url =  f"{kattis_config.url}{_PROBLEMS_ENDING}{problem_id}"
+    url = f"{kattis_config.url}{_PROBLEMS_ENDING}{problem_id}"
     print(f"Making http request: {url}") if verbose else None
     r = requests.get(f"{url}")
     # bad request
@@ -72,11 +73,14 @@ def get_problem_rating(problem_id: str, kattis_config: configloader.KattisConfig
     results = soup.find('span', class_='difficulty_number')
     if results:
         rating = results.text
-        print(f"Problem rating for {problem_id}: {rating}") if verbose else None
+        print(
+            f"Problem rating for {problem_id}: {rating}") if verbose else None
         return float(rating)
     else:
-        print(f"Unable to find problem rating for {problem_id}") if verbose else None
+        print(
+            f"Unable to find problem rating for {problem_id}") if verbose else None
         raise ValueError(f"Unable to find problem rating for {problem_id}")
+
 
 def get_problem_samples(problem_id: str, kattis_config: configloader.KattisConfig, verbose=False) -> bytes:
     """Downloads the sample files for a problem
@@ -106,6 +110,7 @@ def get_problem_samples(problem_id: str, kattis_config: configloader.KattisConfi
     print("Sample files found! Returning content.") if verbose else None
     return r.content
 
+
 def get_updated_ratings(problems_conf: dict, kattis_config: configloader.KattisConfig, verbose=False):
     """Updates the problem ratings in the problems config
 
@@ -123,6 +128,7 @@ def get_updated_ratings(problems_conf: dict, kattis_config: configloader.KattisC
         problems_conf[problem_id] = get_problem_rating(
             problem_id, kattis_config, verbose)
     configloader.problem_config_changed()
+
 
 def add_problem(problem_id: str, problem_conf: dict, kattis_config: configloader.KattisConfig, verbose=False):
     """Adds a problem to the problems config
@@ -147,15 +153,19 @@ def add_problem(problem_id: str, problem_conf: dict, kattis_config: configloader
         sys.exit(1)
 
     if old_rating and old_rating == problem_rating:
-        print(f"Problem '{problem_id}' already added (rating: {problem_rating}).")
+        print(
+            f"Problem '{problem_id}' already added (rating: {problem_rating}).")
         return
     elif old_rating and old_rating != problem_rating:
-        print(f"Updated rating of '{problem_id}' from {old_rating} to {problem_rating}.")
+        print(
+            f"Updated rating of '{problem_id}' from {old_rating} to {problem_rating}.")
     else:
-        print(f"Adding problem '{problem_id}' to problems config (rating {problem_rating}).")
+        print(
+            f"Adding problem '{problem_id}' to problems config (rating {problem_rating}).")
     # add problem to config
     problem_conf[problem_id] = problem_rating
     configloader.problem_config_changed()
+
 
 def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=False):
     """Posts a submission to Kattis
@@ -188,43 +198,46 @@ def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=Fa
         lang = "Python " + str(version)
     # list of files to submit
     submission_files = [problem_id + extension]
-    print(f"Submission files: {', '.join(submission_files)}") if verbose else None
+    print(
+        f"Submission files: {', '.join(submission_files)}") if verbose else None
 
     print("Logging in...") if verbose else None
     login_response = login(kattis_config, verbose)
 
-    #TODO: add support for -f flag to skip
+    # TODO: add support for -f flag to skip
     confirm_submission(problem_id, lang, submission_files)
 
     # try post call
     try:
         submit_response = submit(
-        login_response.cookies,
-        problem_id,
-        lang,
-        submission_files,
-        kattis_config.url,
-        mainclass
+            login_response.cookies,
+            problem_id,
+            lang,
+            submission_files,
+            kattis_config.url,
+            mainclass
         )
     except requests.exceptions.RequestException as e:
         print("Submit Connection Failed:", e)
         sys.exit(0)
     # print submission id message
-    plain_text_response = submit_response.content.decode("utf-8").replace("<br />", "\n")
+    plain_text_response = submit_response.content.decode(
+        "utf-8").replace("<br />", "\n")
     # print(plain_text_response)
     # check the submission acceptance status
     # submission_id = plain_text_response.split()[-1].rstrip(".")
     # check_submission_status(problem_id + extension, submission_id, kattis_config, user_config, login_response.cookies, verbose)
 
-def login(kattis_config: configloader.KattisConfig, verbose = False) -> requests.Response:
+
+def login(kattis_config: configloader.KattisConfig, verbose=False) -> requests.Response:
     """
     A helper function to log a user in to kattis
-    
+
     Parameters
     ----------
     kattis_config: configloader.KattisConfig
         A KattisConfig object containing the user's login credentials
-    
+
     Returns
     -------
     requests.Response
@@ -239,7 +252,7 @@ def login(kattis_config: configloader.KattisConfig, verbose = False) -> requests
     r = requests.post(login_url, data=login_creds, headers=_HEADERS)
 
     if r.status_code == 200:
-       print("Login Successful") if verbose else None
+        print("Login Successful") if verbose else None
     else:
         print("Login Failed")
         if r.status_code == 403:
@@ -250,6 +263,7 @@ def login(kattis_config: configloader.KattisConfig, verbose = False) -> requests
             print("Status Code:", r.status_code)
         r.raise_for_status()
     return r
+
 
 def confirm_submission(problem_id, lang, files):
     """
@@ -268,12 +282,13 @@ def confirm_submission(problem_id, lang, files):
     print("Language: ", lang)
     print("Files: ", ", ".join(files))
     print("Submit (Y/N): ", end="")
-    if input()[0].lower() not in  ["y", "yes"]:
+    if input()[0].lower() not in ["y", "yes"]:
         print("Aborting...")
         sys.exit(0)
     print()
 
-def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[str], url: str, mainclass: str | None = "", verbose = False) -> requests.Response:
+
+def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[str], url: str, mainclass: str | None = "", verbose=False) -> requests.Response:
     """
     A helper function to post a solution to kattis
 
@@ -293,7 +308,7 @@ def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[s
         A string representing the mainclass to submit as
     verbose: bool
         A boolean flag to enable verbose mode
-    
+
     Returns
     -------
     requests.Response
@@ -313,16 +328,17 @@ def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[s
         with open(i) as f:
             submission_files.append(
                 (
-                "sub_file[]",
-                (
-                    os.path.basename(i),
-                    f.read(),
-                    "application/octet-stream"
-                )
+                    "sub_file[]",
+                    (
+                        os.path.basename(i),
+                        f.read(),
+                        "application/octet-stream"
+                    )
                 )
             )
     submit_url = "https://" + url + _SUBMIT_ENDING
-    r = requests.post(submit_url, data=data, files=submission_files, cookies=cookies, headers=_HEADERS)
+    r = requests.post(submit_url, data=data,
+                      files=submission_files, cookies=cookies, headers=_HEADERS)
     status = r.status_code
     if status == 200 and verbose:
         print("Submission Status: 200\n")
@@ -337,6 +353,7 @@ def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[s
                 print("Status Code:", status)
         r.raise_for_status()
     return r
+
 
 """
 Checks the status of a given submission for acceptance, TLE, etc.

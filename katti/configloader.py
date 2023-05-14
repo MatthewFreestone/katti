@@ -12,6 +12,7 @@ KattisConfig = namedtuple("KattisConfig", "username url token")
 
 DEFAULT_HIST_SIZE = 100
 
+
 def load_user_config(config_path: str) -> dict:
     """Loads the user config file and returns it as a dict
 
@@ -50,6 +51,7 @@ def load_user_config(config_path: str) -> dict:
             user_config_changed = True
     return user_config
 
+
 def load_problems_config(config_path: str) -> dict:
     """Loads the problems config file and returns it as a dict
 
@@ -71,15 +73,18 @@ def load_problems_config(config_path: str) -> dict:
             problems_list = json.load(f)
     return problems_list
 
+
 def problem_config_changed():
     """Ensures that the problems config file is saved when the program exits"""
     global probems_config_changed
     probems_config_changed = True
 
+
 def update_user_config():
     """Ensures that the user config file is saved when the program exits"""
     global user_config_changed
     user_config_changed = True
+
 
 def save_user_config(config_path: str, user_config: dict):
     """Saves the user config file
@@ -97,6 +102,7 @@ def save_user_config(config_path: str, user_config: dict):
             json.dump(user_config, f, indent=4)
         user_config_changed = False
 
+
 def save_problems_config(config_path: str, problems_config: dict):
     """Saves the problems config file
 
@@ -112,6 +118,7 @@ def save_problems_config(config_path: str, problems_config: dict):
         with open(config_path, "w") as f:
             json.dump(problems_config, f)
         probems_config_changed = False
+
 
 def get_kattis_config(config_path: str) -> KattisConfig:
     """Helper function to load a users .kattisrc file and parse it
@@ -149,5 +156,3 @@ def get_kattis_config(config_path: str) -> KattisConfig:
         sys.exit(1)
     url = "https://" + url
     return KattisConfig(username, url, token)
-
-

@@ -11,6 +11,7 @@ import filecmp
 import subprocess
 from katti.utils import SUPPORTED_LANGS, EXTENSION_TO_LANG, JUNK_EXTENSIONS, infer_python_version
 
+
 def get_boilerplate(problem_id: str, rating: str, extension: str) -> tuple[str, str]:
     """Gives filename and boilerplate code for a problem in a given programming language.
 
@@ -91,7 +92,7 @@ def main():
 if __name__ == "__main__":
   main()
 """ % (rating, problem_id)
-    
+
     else:
         raise ValueError(f"Unsupported extension: {extension}")
 
@@ -118,7 +119,8 @@ def get_problem(problem_id, problems_config, kattis_config, preferred_language=N
     """
 
     # get problem rating, will exit if problem id is invalid
-    rating = webkattis.get_problem_rating(problem_id, kattis_config, verbose=verbose)
+    rating = webkattis.get_problem_rating(
+        problem_id, kattis_config, verbose=verbose)
 
     # get programming language and extension
     extension = None
@@ -133,7 +135,8 @@ def get_problem(problem_id, problems_config, kattis_config, preferred_language=N
             break
         print(f'Language "{language}" not suported...')
 
-    samples = webkattis.get_problem_samples(problem_id, kattis_config, verbose=verbose)
+    samples = webkattis.get_problem_samples(
+        problem_id, kattis_config, verbose=verbose)
 
     # write problem id and rating to config file
     if problem_id not in problems_config:
@@ -174,6 +177,7 @@ def get_problem(problem_id, problems_config, kattis_config, preferred_language=N
         webkattis.show_description(problem_id, kattis_config, verbose=verbose)
     os.chdir("..")
 
+
 def get_random_problem(desired_rating: str, user_conf: dict, problems_conf: dict, kattis_config: configloader.KattisConfig, verbose: bool = False) -> None:
     """Gets a random problem from the list of unsolved problems within the given rating range.
 
@@ -201,34 +205,40 @@ def get_random_problem(desired_rating: str, user_conf: dict, problems_conf: dict
         print("Aborting...")
         sys.exit(1)
     # update ratings if necessary
-    prev_update = datetime.strptime(user_conf["ids_last_updated"], "%Y-%m-%d %H:%M:%S.%f")
+    prev_update = datetime.strptime(
+        user_conf["ids_last_updated"], "%Y-%m-%d %H:%M:%S.%f")
     print(f"Ratings last updated on {prev_update}") if verbose else None
     current = datetime.now()
     # 3600 seconds in hour - no hours field
     hours = (current - prev_update).total_seconds() / 3600
     if hours >= user_conf["ratings_update_period"]:
         print("Updating ratings...") if verbose else None
-        webkattis.get_updated_ratings(problems_conf, kattis_config, verbose=verbose)
+        webkattis.get_updated_ratings(
+            problems_conf, kattis_config, verbose=verbose)
         user_conf["ids_last_updated"] = str(current)
         configloader.update_user_config()
     else:
-        print(f"Ratings updated {hours: .2f} hours ago. Skipping update...") if verbose else None
+        print(
+            f"Ratings updated {hours: .2f} hours ago. Skipping update...") if verbose else None
 
     # will hold all unsolved problems within the range
     choices = set()
     solved = set([i.split(".")[0] for i in user_conf["solved"]])
     for problem, val in problems_conf.items():
-        if  rating <= val < (rating + 1):
+        if rating <= val < (rating + 1):
             choices.add(problem)
     choices -= solved
-    print(f"Found {len(choices)} unsolved problems rated {rating}") if verbose else None
+    print(
+        f"Found {len(choices)} unsolved problems rated {rating}") if verbose else None
     if choices:
         pick = random.choice(list(choices))
         print(f"{pick}: {problems_conf[pick]}")
         if input('Open in browser? [Y/n]: ').lower() not in {'n', 'no'}:
             webkattis.show_description(pick, kattis_config, verbose=verbose)
         return
-    print("It appears you have solved all problems rated %.1f - %.1f" % (rating, rating + 0.9))
+    print("It appears you have solved all problems rated %.1f - %.1f" %
+          (rating, rating + 0.9))
+
 
 def run(problems_conf, verbose: bool = False) -> None:
     """ Runs all the sample inputs for a given kattis problem and checks them for
@@ -257,6 +267,7 @@ def run(problems_conf, verbose: bool = False) -> None:
     else:
         print("No executable found")
         print("Aborting...")
+
 
 def get_source_extension(problem_id, verbose: bool = False, specific_file: str | None = None):
     """Helper function to find a problem's sorce file extension
@@ -287,6 +298,7 @@ def get_source_extension(problem_id, verbose: bool = False, specific_file: str |
     print("Aborting...")
     sys.exit(1)
 
+
 def get_samples_and_answers(verbose: bool = False) -> Tuple[List[str], List[str]]:
     """Helper function to get sample inputs and outputs for comparison
 
@@ -309,11 +321,12 @@ def get_samples_and_answers(verbose: bool = False) -> Tuple[List[str], List[str]
             samples.append(f)
         if extension == ".ans":
             answers.append(f)
-    print(f"Found {len(samples)} sample inputs and {len(answers)} sample outputs") if verbose else None
+    print(
+        f"Found {len(samples)} sample inputs and {len(answers)} sample outputs") if verbose else None
     return (samples, answers)
 
 
-def run_compiler(file_name: str, extension: str, verbose = False) -> str | None:
+def run_compiler(file_name: str, extension: str, verbose=False) -> str | None:
     """Helper function for run() method. Compiles the code for compiled languages and checks
     existence of interpreter for interpreted languages
 
@@ -334,7 +347,8 @@ def run_compiler(file_name: str, extension: str, verbose = False) -> str | None:
     if extension == ".cpp":
         # check presence of g++ compiler
         # status = os.system("which g++")
-        status = subprocess.run(['g++', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        status = subprocess.run(
+            ['g++', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if status != 0:
             print("Unable to locate g++ compiler")
             print("Aborting...")
@@ -371,11 +385,13 @@ def run_compiler(file_name: str, extension: str, verbose = False) -> str | None:
                 return None
             return "python2 " + file_name + extension
         else:
-            result = subprocess.run(['python3', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result = subprocess.run(
+                ['python3', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             status = result.returncode
             if status != 0:
                 print("python3 alias failed, trying python") if verbose else None
-                result = subprocess.run(['python', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                result = subprocess.run(
+                    ['python', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 status = result.returncode
                 if status != 0:
                     print("Unable to locate Python 3 interpreter")
@@ -406,7 +422,7 @@ def run_test_cases(executable: str, sample_files: List[str], expected: List[str]
         fail = False
         # get rid of .in extension in order to match with corresponding .ans file
         base = '.'.join(sample.split('.')[:-1])
-        executable += " < " +  sample + " > test.out"
+        executable += " < " + sample + " > test.out"
         os.system(executable)
 
         # replace crlf with lf
@@ -445,6 +461,7 @@ def run_test_cases(executable: str, sample_files: List[str], expected: List[str]
     # formatting
     print()
 
+
 def cleanup_after_run(verbose=False):
     """Cleans up after a run() call by removing all compiled files
 
@@ -454,7 +471,7 @@ def cleanup_after_run(verbose=False):
         A boolean representing whether or not to print verbose output
     """
     if verbose:
-        print("Cleaning up...") 
+        print("Cleaning up...")
     all_files = [item.split('.') for item in os.listdir()]
     for *item, extension in all_files:
         item = '.'.join(item)
