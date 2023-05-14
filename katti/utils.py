@@ -22,7 +22,18 @@ JUNK_EXTENSIONS = {
     "o",
 }
 
-def get_source_extension(problem_id):
+def get_source_extension(problem_id: str) -> str:
+    """Helper function to get the extension of the source file for a problem.
+
+    Parameters:
+    -----------
+    problem_id: str
+        The id of the problem to get the source file for
+
+    Returns:
+    --------
+    A string representing the extension of the source file
+    """
     for f in os.listdir():
         base, extension = os.path.splitext(os.path.basename(f))
         if base == problem_id and extension in EXTENSION_TO_LANG:
@@ -30,7 +41,7 @@ def get_source_extension(problem_id):
     print("No suitable source files found")
     print("Currently Supported Extensions: " + ", ".join(EXTENSION_TO_LANG.keys()))
     print("Aborting...")
-    return None
+    raise Exception("No suitable source files found")
 
 
 def infer_python_version(filename) -> int:
@@ -56,5 +67,3 @@ def infer_python_version(filename) -> int:
             if python2.search(line.split('#')[0]):
                 return 2
     return 3
-
-

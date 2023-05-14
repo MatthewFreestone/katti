@@ -11,28 +11,6 @@ import filecmp
 import subprocess
 from katti.utils import SUPPORTED_LANGS, EXTENSION_TO_LANG, JUNK_EXTENSIONS, infer_python_version
 
-# # supported programming languages
-# _suported_langs = {
-#     "cpp": ".cpp",
-#     "c++": ".cpp",
-#     "java": ".java",
-#     "python": ".py"
-# }
-# # convert an extension to a submission language
-# _extension_to_lang = {
-#     ".cpp": "C++",
-#     ".java": "Java",
-#     ".py": "Python"
-# }
-
-# _junk_extensions = {
-#     "class",
-#     "exe",
-#     "out",
-#     "o",
-# }
-
-
 def get_boilerplate(problem_id: str, rating: str, extension: str) -> tuple[str, str]:
     """Gives filename and boilerplate code for a problem in a given programming language.
 
@@ -50,8 +28,8 @@ def get_boilerplate(problem_id: str, rating: str, extension: str) -> tuple[str, 
     tuple[str,str]
         A tuple containing the filename and the boilerplate code
     """
+    filename, content = (None, None)
     # c++ boilerplate
-    content = None
     if extension == ".cpp":
         filename = problem_id + extension
         content =\
@@ -113,11 +91,14 @@ def main():
 if __name__ == "__main__":
   main()
 """ % (rating, problem_id)
+    
+    else:
+        raise ValueError(f"Unsupported extension: {extension}")
 
     return (filename, content)
 
 
-def get_problem(problem_id, problems_config, preferred_language=None, verbose=False):
+def get_problem(problem_id, problems_config, kattis_config, preferred_language=None, verbose=False):
     """
     Creates a directory with the problem id, test cases, and boilerplate code for a given problem id.
 
@@ -125,13 +106,19 @@ def get_problem(problem_id, problems_config, preferred_language=None, verbose=Fa
     ----------
     problem_id: str
         A string representing the problem id
+    problems_config: dict
+        A dictionary containing the problem id and rating
+    kattis_config: dict
+        A dictionary containing the kattis username and password
     preferred_language: str
         A string representing the preferred programming language
         Options: "cpp", "c++", "java", "python"
+    verbose: bool
+        A boolean representing whether to print verbose output
     """
 
     # get problem rating, will exit if problem id is invalid
-    rating = webkattis.get_problem_rating(problem_id, verbose=verbose)
+    rating = webkattis.get_problem_rating(problem_id, kattis_config, verbose=verbose)
 
     # get programming language and extension
     extension = None
@@ -146,7 +133,7 @@ def get_problem(problem_id, problems_config, preferred_language=None, verbose=Fa
             break
         print(f'Language "{language}" not suported...')
 
-    samples = webkattis.get_problem_samples(problem_id, verbose=verbose)
+    samples = webkattis.get_problem_samples(problem_id, kattis_config, verbose=verbose)
 
     # write problem id and rating to config file
     if problem_id not in problems_config:
@@ -172,7 +159,7 @@ def get_problem(problem_id, problems_config, preferred_language=None, verbose=Fa
     os.remove("samples.zip")
     # os.system("rm -iv samples.zip")
     os.chdir(problem_id)
-    filename, boilerplate = get_boilerplate(problem_id, rating, extension)
+    filename, boilerplate = get_boilerplate(problem_id, str(rating), extension)
     if not os.path.exists(filename):
         print(
             f"Writing boilerplate file {problem_id}{extension} ...") if verbose else None
@@ -184,26 +171,29 @@ def get_problem(problem_id, problems_config, preferred_language=None, verbose=Fa
             f"File {filename} already exists, skipping writing boilerplate...") if verbose else None
 
     if input('Open in browser? [Y/n]: ').lower() not in {'n', 'no'}:
-        webkattis.show_description(problem_id, verbose=verbose)
+        webkattis.show_description(problem_id, kattis_config, verbose=verbose)
     os.chdir("..")
 
-def get_random_problem(rating: str, user_conf: dict, problems_conf: dict, verbose: bool = False) -> None:
+def get_random_problem(desired_rating: str, user_conf: dict, problems_conf: dict, kattis_config: configloader.KattisConfig, verbose: bool = False) -> None:
     """Gets a random problem from the list of unsolved problems within the given rating range.
 
     Parameters
     ----------
-    rating: str
+    desired_rating: str
         A string desired rating 
     user_conf: dict
         A dictionary representing the user configuration
     problems_conf: dict
         A dictionary representing the problems configuration
+    kattis_config: configloader.KattisConfig
+        A KattisConfig object representing the kattis configuration
     verbose: bool
         A boolean representing whether or not to print verbose output
     """
     invalid = False
+    rating = -1
     try:
-        rating = int(rating)
+        rating = int(desired_rating)
     except:
         invalid = True
     if invalid or not 1 <= rating <= 10:
@@ -218,9 +208,9 @@ def get_random_problem(rating: str, user_conf: dict, problems_conf: dict, verbos
     hours = (current - prev_update).total_seconds() / 3600
     if hours >= user_conf["ratings_update_period"]:
         print("Updating ratings...") if verbose else None
-        webkattis.get_updated_ratings(problems_conf, verbose=verbose)
+        webkattis.get_updated_ratings(problems_conf, kattis_config, verbose=verbose)
         user_conf["ids_last_updated"] = str(current)
-        configloader.user_config_changed()
+        configloader.update_user_config()
     else:
         print(f"Ratings updated {hours: .2f} hours ago. Skipping update...") if verbose else None
 
@@ -236,7 +226,7 @@ def get_random_problem(rating: str, user_conf: dict, problems_conf: dict, verbos
         pick = random.choice(list(choices))
         print(f"{pick}: {problems_conf[pick]}")
         if input('Open in browser? [Y/n]: ').lower() not in {'n', 'no'}:
-            webkattis.show_description(pick, verbose=verbose)
+            webkattis.show_description(pick, kattis_config, verbose=verbose)
         return
     print("It appears you have solved all problems rated %.1f - %.1f" % (rating, rating + 0.9))
 
@@ -268,7 +258,7 @@ def run(problems_conf, verbose: bool = False) -> None:
         print("No executable found")
         print("Aborting...")
 
-def get_source_extension(problem_id, verbose: bool = False, specific_file: str = None):
+def get_source_extension(problem_id, verbose: bool = False, specific_file: str | None = None):
     """Helper function to find a problem's sorce file extension
 
     Parameters:
@@ -323,7 +313,7 @@ def get_samples_and_answers(verbose: bool = False) -> Tuple[List[str], List[str]
     return (samples, answers)
 
 
-def run_compiler(file_name: str, extension: str, verbose = False) -> str:
+def run_compiler(file_name: str, extension: str, verbose = False) -> str | None:
     """Helper function for run() method. Compiles the code for compiled languages and checks
     existence of interpreter for interpreted languages
 

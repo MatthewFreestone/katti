@@ -8,7 +8,7 @@ from collections import namedtuple
 user_config_changed = False
 probems_config_changed = False
 
-KattisConfig = namedtuple("KattisConfig", "username url token" )
+KattisConfig = namedtuple("KattisConfig", "username url token")
 
 DEFAULT_HIST_SIZE = 100
 
@@ -76,7 +76,7 @@ def problem_config_changed():
     global probems_config_changed
     probems_config_changed = True
 
-def user_config_changed():
+def update_user_config():
     """Ensures that the user config file is saved when the program exits"""
     global user_config_changed
     user_config_changed = True
@@ -147,6 +147,7 @@ def get_kattis_config(config_path: str) -> KattisConfig:
         print("Please navigate to https://open.kattis.com/help/submit and download a new .kattisrc")
         print("Aborting...")
         sys.exit(1)
+    url = "https://" + url
     return KattisConfig(username, url, token)
 
 
