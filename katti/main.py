@@ -28,6 +28,7 @@ def main():
             localproblems.get_problem(
                 problem_id, problems_conf, kattis_conf, preferred_language, verbose=verbose)
         case "random":
+            # defaults to -1 if not specified
             rating = args.random
             localproblems.get_random_problem(
                 rating, user_conf, problems_conf, kattis_conf, verbose=verbose)

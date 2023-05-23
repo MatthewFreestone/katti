@@ -44,7 +44,7 @@ def get_parser():
         "random", help="selects a random added kattis problem with a given rating")
     _add_verbose(random_parser)
     random_parser.add_argument(
-        "random", metavar="<rating>", help="selects a random added kattis problem with a given rating", type=str)
+        "random", metavar="<problem-rating>", help="selects a random added kattis problem with a given rating", type=float, default=-1, nargs='?')
     
     
     return arg_parser

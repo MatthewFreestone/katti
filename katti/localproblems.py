@@ -176,13 +176,13 @@ def get_problem(problem_id, problems_config, kattis_config, preferred_language=N
     os.chdir("..")
 
 
-def get_random_problem(desired_rating: str, user_conf: dict, problems_conf: dict, kattis_config: configloader.KattisConfig, verbose: bool = False) -> None:
+def get_random_problem(desired_rating: float, user_conf: dict, problems_conf: dict, kattis_config: configloader.KattisConfig, verbose: bool = False) -> None:
     """Gets a random problem from the list of unsolved problems within the given rating range.
 
     Parameters
     ----------
-    desired_rating: str
-        A string desired rating 
+    desired_rating: float
+        A float desired rating 
     user_conf: dict
         A dictionary representing the user configuration
     problems_conf: dict
@@ -192,51 +192,42 @@ def get_random_problem(desired_rating: str, user_conf: dict, problems_conf: dict
     verbose: bool
         A boolean representing whether or not to print verbose output
     """
-    invalid = False
+    choices = set()
     rating = -1
-    try:
+    if desired_rating != -1:
+        # floor rating to nearest integer
         rating = int(desired_rating)
-    except:
-        invalid = True
-    if invalid or not 1 <= rating <= 10:
-        print("Invalid rating. Rating must be a valid integer between 1 and 10")
-        print("Aborting...")
-        sys.exit(1)
-
-    # update ratings if necessary
-    prev_update = datetime.strptime(
-        user_conf["ids_last_updated"], "%Y-%m-%d %H:%M:%S")
-    print(f"Ratings last updated on {prev_update}") if verbose else None
-    current = datetime.now()
-    # 3600 seconds in hour - no hours field
-    hours = (current - prev_update).total_seconds() / 3600
-    if hours >= user_conf["ratings_update_period"]:
-        print("Updating ratings...") if verbose else None
-        webkattis.get_updated_ratings(
-            problems_conf, kattis_config, verbose=verbose)
-        user_conf["ids_last_updated"] = str(current)
-        configloader.update_user_config()
-    else:
+        if not 1 <= rating <= 10:
+            print("Invalid rating. Rating must be between 1 and 10")
+            print("Aborting...")
+            sys.exit(1)
+        choices = {i for i in problems_conf if rating <= problems_conf[i] < (rating + 1)}
         print(
-            f"Ratings updated {hours: .2f} hours ago. Skipping update...") if verbose else None
+            f"Found {len(choices)} unsolved problems rated {rating}") if verbose else None
+    else:
+        choices = {i for i in problems_conf}
+        print(
+            f"Found {len(choices)} unsolved problems") if verbose else None
 
     # will hold all unsolved problems within the range
-    choices = set()
-    solved = set([i.split(".")[0] for i in user_conf["solved"]])
-    for problem, val in problems_conf.items():
-        if rating <= val < (rating + 1):
-            choices.add(problem)
-    choices -= solved
-    print(
-        f"Found {len(choices)} unsolved problems rated {rating}") if verbose else None
+    # choices = set()
+    # solved = set([i.split(".")[0] for i in user_conf["solved"]])
+    # for problem, val in problems_conf.items():
+    #     if rating <= val < (rating + 1):
+    #         choices.add(problem)
+    # choices -= solved
+    
     if choices:
         pick = random.choice(list(choices))
         print(f"{pick}: {problems_conf[pick]}")
         if input('Open in browser? [Y/n]: ').lower() not in {'n', 'no'}:
             webkattis.show_description(pick, kattis_config, verbose=verbose)
         return
-    print("It appears you have solved all problems rated %.1f - %.1f" %
-          (rating, rating + 0.9))
+    if rating != -1:
+        print("It appears you have solved all problems rated %.1f - %.1f" % 
+              (rating, rating + 0.9))
+    else:
+        print("It appears you have solved all problems")
 
 
 def run(problems_conf, verbose: bool = False) -> None:
@@ -479,3 +470,21 @@ def cleanup_after_run(verbose=False):
             os.remove(item + "." + extension)
     if verbose:
         print("Done cleaning up")
+
+def _update_ratings(user_conf, problems_conf, kattis_config, verbose=False):
+    # update ratings if necessary
+    prev_update = datetime.strptime(
+        user_conf["ids_last_updated"], "%Y-%m-%d %H:%M:%S")
+    print(f"Ratings last updated on {prev_update}") if verbose else None
+    current = datetime.now()
+    # 3600 seconds in hour - no hours field
+    hours = (current - prev_update).total_seconds() / 3600
+    if hours >= user_conf["ratings_update_period"]:
+        print("Updating ratings...") if verbose else None
+        webkattis.get_updated_ratings(
+            problems_conf, kattis_config, verbose=verbose)
+        user_conf["ids_last_updated"] = str(current)
+        configloader.update_user_config()
+    else:
+        print(
+            f"Ratings updated {hours: .2f} hours ago. Skipping update...") if verbose else None
