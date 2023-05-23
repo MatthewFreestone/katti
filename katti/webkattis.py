@@ -219,9 +219,10 @@ def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=Fa
     # print submission id message
     plain_text_response = submit_response.content.decode(
         "utf-8").replace("<br />", "\n")
-    # print(plain_text_response)
+    print(plain_text_response)
     # check the submission acceptance status
     # submission_id = plain_text_response.split()[-1].rstrip(".")
+    # webbrowser.open(submission_id)
     # check_submission_status(problem_id + extension, submission_id, kattis_config, user_config, login_response.cookies, verbose)
 
 
@@ -244,7 +245,7 @@ def login(kattis_config: configloader.KattisConfig, verbose=False) -> requests.R
         "token": kattis_config.token,
         "script": "true"
     }
-    login_url = "https://" + kattis_config.url + _LOGIN_ENDING
+    login_url = kattis_config.url + _LOGIN_ENDING
     r = requests.post(login_url, data=login_creds, headers=_HEADERS)
 
     if r.status_code == 200:
@@ -277,8 +278,9 @@ def confirm_submission(problem_id, lang, files):
     print("Problem: ", problem_id)
     print("Language: ", lang)
     print("Files: ", ", ".join(files))
-    print("Submit (Y/N): ", end="")
-    if input()[0].lower() not in ["y", "yes"]:
+    print("Submit [y/N]: ", end="")
+    answer = input()
+    if not answer or answer.lower() not in ["y", "yes"]:
         print("Aborting...")
         sys.exit(0)
     print()
@@ -332,7 +334,7 @@ def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[s
                     )
                 )
             )
-    submit_url = "https://" + url + _SUBMIT_ENDING
+    submit_url = url + _SUBMIT_ENDING
     r = requests.post(submit_url, data=data,
                       files=submission_files, cookies=cookies, headers=_HEADERS)
     status = r.status_code
@@ -350,97 +352,3 @@ def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[s
         r.raise_for_status()
     return r
 
-
-"""
-Checks the status of a given submission for acceptance, TLE, etc.
-
-Params: A string submission_file, a string submission_id
-Returns: None
-
-def check_submission_status(submission_file, submission_id, kattis_config, user_config, login_cookie, verbose=False):
-  
-  print("Awaiting result...\n")
-
-  # limit number of http requests for a submissions status
-  i = 0
-  while i < MAX_SUBMISSION_CHECKS:
-    response = requests.get(
-      kattis_config.url + _STATUS_ENDING + submission_id,
-      cookies=login_cookie,
-      headers=_HEADERS
-    )
-    # parse html for accepted test cases
-    soup = BeautifulSoup(response.content, "html.parser")
-    status_div = soup.find("div", class_="status")
-    if status_div:
-      child = status_div.text
-      status = set(child["class"])
-      runtime = soup.find("td", class_=re.compile("runtime"))
-      # success
-      if "ccepted" in status:
-        accepted = soup.find_all("span", class_=re.compile("accepted"))
-        # limit length of output
-        if len(accepted) > 47:
-          print("Test Cases: "
-                + ("+" * 47)
-                + " plus "
-                + str(len(accepted) - 47)
-                + " more"
-          )
-        else:
-          print("Test Cases: " + ("+" * len(accepted)))
-        print("PASSED")
-        print("Runtime: %s" % runtime.text)
-        # insert problem into solved section of conf file in sorted order
-        bin_search_index = bisect(user_config["solved"], submission_file)
-        if user_config["solved"][bin_search_index-1] != submission_file:
-          user_config["solved"].insert(bin_search_index, submission_file)
-        modified = True
-        break
-      # failure
-      elif "rejected" in status:
-        accepted = soup.find_all("span", class_=re.compile("accepted"))
-        reason = soup.find("span", class_="rejected")
-        cases = soup.find_all("span", title=re.compile("Test case"))
-        num_cases = 0
-        # find how many test cases passed and which one failed
-        if cases:
-          num_cases = cases[0]["title"]
-          num_cases = re.findall("[0-9]+/[0-9]+", num_cases)
-          num_cases = num_cases[0].split("/")[-1]
-          # limit output length
-          if len(accepted) > 46:
-            print("Test Cases: " + ("+" * 44) + "...")
-          else:
-            print("Test Cases: " + ("+" * len(accepted)) + "-")
-        print("FAILED")
-        print("Reason:", reason.text)
-        if num_cases == 0:
-          print("Failed Test Case: N/A")
-        else:
-          print("Failed Test Case: %i/%s" % (len(accepted)+1, num_cases))
-        print("Runtime: %s" % runtime.text)
-        break
-      # still running
-      else:
-        accepted = soup.find_all("span", class_=re.compile("accepted"))
-        # update output
-        if len(accepted) > 47:
-          print("Test Cases: "
-                + ("+" * 47)
-                + " plus "
-                + str(len(accepted) - 47)
-                + " more", end='\r'
-          )
-        else:
-          print("Test Cases: " + ("+" * len(accepted)), end='\r')
-        time.sleep(0.5)
-        i += 1
-  # add to submission history
-  dt = str(datetime.now()).split(".")[0]
-  user_config["history"].insert(0, dt + " " + submission_file)
-  # truncate submission history to user config history size
-  while len(user_config["history"]) > user_config["history_size"]:
-    user_config["history"].pop()
-  modified = True
-"""

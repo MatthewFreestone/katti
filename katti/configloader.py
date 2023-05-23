@@ -3,14 +3,18 @@ from datetime import datetime
 import json
 import configparser
 import sys
-from collections import namedtuple
+from dataclasses import dataclass
 from katti import constants
 
 user_config_changed = False
 problems_config_changed = False
 
-KattisConfig = namedtuple("KattisConfig", "username url token")
-
+@dataclass
+class KattisConfig:
+    '''A dataclass representing the kattis config file. URL contains "https://" '''
+    username: str
+    url: str
+    token: str
 
 def load_user_config(config_path: str) -> dict:
     """Loads the user config file and returns it as a dict
