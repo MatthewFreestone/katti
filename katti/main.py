@@ -1,8 +1,5 @@
 import pkg_resources
 import os
-import sys
-import json
-import datetime
 from katti import webkattis, configloader, localproblems, parser
 from katti.constants import colors
 

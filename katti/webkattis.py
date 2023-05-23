@@ -3,10 +3,6 @@ import os
 import webbrowser
 import requests
 from requests.cookies import RequestsCookieJar
-import re
-import datetime
-import bisect
-import time
 from bs4 import BeautifulSoup
 from katti import configloader
 from katti.utils import EXTENSION_TO_LANG, get_source_extension, infer_python_version

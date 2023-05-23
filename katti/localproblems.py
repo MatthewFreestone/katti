@@ -1,14 +1,12 @@
-from katti import configloader
-from katti import webkattis
 import random
 import os
 import sys
 from zipfile import ZipFile
 from datetime import datetime
 from typing import List, Tuple
-import re
 import filecmp
 import subprocess
+from katti import configloader, webkattis
 from katti.utils import SUPPORTED_LANGS, EXTENSION_TO_LANG, JUNK_EXTENSIONS, infer_python_version
 
 
