@@ -13,10 +13,7 @@ def sample_problem_config():
 @pytest.fixture
 def default_user_config():
     return {
-        "solved": [],
-        "history": [],
-        "history_size": 100,
-        "ids_last_updated": "2023-02-19 15:20:56.758676",
+        "ids_last_updated": "2023-02-19 15:20:56",
         "ratings_update_period": 72
     }
 
@@ -24,10 +21,8 @@ def default_user_config():
 @pytest.fixture
 def example_user_config():
     return {
-        "solved": ["carrots", "10kindsofpeople"],
-        "history": ["carrots", "10kindsofpeople"],
-        "history_size": 50,
-        "ids_last_updated": "2023-02-19 15:20:56.758676",
+        "preferred_language": "Python",
+        "ids_last_updated": "2023-02-19 15:20:56",
         "ratings_update_period": 24
     }
 

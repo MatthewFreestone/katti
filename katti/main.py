@@ -6,16 +6,10 @@ import datetime
 from katti import webkattis, configloader, localproblems, parser
 from katti.constants import colors
 
-
-USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'config.json')
+USER_CONF_PATH = pkg_resources.resource_filename(__name__, 'user_config.json')
 PROBLEMS_CONF_PATH = pkg_resources.resource_filename(
     __name__, 'problem_ids.json')
 KATTIS_CONF_PATH = os.path.join(os.path.expanduser('~'), '.kattisrc')
-
-# HOME = os.path.expanduser('~')
-# ZSH_COMP_PATH = os.path.join(HOME, ".config/zsh/custom_completions/_katti")
-
-# for customization of arg parser
 
 def main():
     # TODO these 3 operations are potentially blocking, consider moving to separate threads

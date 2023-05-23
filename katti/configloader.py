@@ -4,13 +4,12 @@ import json
 import configparser
 import sys
 from collections import namedtuple
+from katti import constants
 
 user_config_changed = False
-probems_config_changed = False
+problems_config_changed = False
 
 KattisConfig = namedtuple("KattisConfig", "username url token")
-
-DEFAULT_HIST_SIZE = 100
 
 
 def load_user_config(config_path: str) -> dict:
@@ -30,11 +29,8 @@ def load_user_config(config_path: str) -> dict:
     user_config = None
     if not os.path.exists(config_path):
         user_config = {
-            "solved": [],
-            "history": [],
-            "history_size": DEFAULT_HIST_SIZE,
-            "ids_last_updated": str(datetime.now()),
-            "ratings_update_period": 72
+                "ids_last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "ratings_update_period": constants.DEFAULT_RATING_UPDATE_PERIOD
         }
         user_config_changed = True
     else:
@@ -42,11 +38,8 @@ def load_user_config(config_path: str) -> dict:
             user_config = json.load(f)
         if not user_config:
             user_config = {
-                "solved": [],
-                "history": [],
-                "history_size": DEFAULT_HIST_SIZE,
-                "ids_last_updated": str(datetime.now()),
-                "ratings_update_period": 72
+                "ids_last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "ratings_update_period": constants.DEFAULT_RATING_UPDATE_PERIOD
             }
             user_config_changed = True
     return user_config
@@ -68,16 +61,20 @@ def load_problems_config(config_path: str) -> dict:
     problems_list = None
     if not os.path.exists(config_path):
         problems_list = {}
+        problems_config_changed = True
     else:
         with open(config_path, "r") as f:
             problems_list = json.load(f)
+        if not problems_list:
+            problems_list = {}
+            problems_config_changed = True
     return problems_list
 
 
 def problem_config_changed():
     """Ensures that the problems config file is saved when the program exits"""
-    global probems_config_changed
-    probems_config_changed = True
+    global problems_config_changed
+    problems_config_changed = True
 
 
 def update_user_config():
@@ -113,11 +110,11 @@ def save_problems_config(config_path: str, problems_config: dict):
     problems_config: dict
         A dictionary containing the problems config
     """
-    global probems_config_changed
-    if probems_config_changed:
+    global problems_config_changed
+    if problems_config_changed:
         with open(config_path, "w") as f:
             json.dump(problems_config, f)
-        probems_config_changed = False
+        problems_config_changed = False
 
 
 def get_kattis_config(config_path: str) -> KattisConfig:

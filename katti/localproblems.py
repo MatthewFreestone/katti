@@ -204,9 +204,10 @@ def get_random_problem(desired_rating: str, user_conf: dict, problems_conf: dict
         print("Invalid rating. Rating must be a valid integer between 1 and 10")
         print("Aborting...")
         sys.exit(1)
+
     # update ratings if necessary
     prev_update = datetime.strptime(
-        user_conf["ids_last_updated"], "%Y-%m-%d %H:%M:%S.%f")
+        user_conf["ids_last_updated"], "%Y-%m-%d %H:%M:%S")
     print(f"Ratings last updated on {prev_update}") if verbose else None
     current = datetime.now()
     # 3600 seconds in hour - no hours field

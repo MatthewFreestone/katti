@@ -7,7 +7,7 @@ from pathlib import Path
 @pytest.fixture
 def carrots_get_response():
     string = None
-    path = Path('./katti/tests/carrots_get_response.html').resolve()
+    path = Path('./tests/carrots_get_response.html').resolve()
     with open(path, 'r') as f:
         string = f.read()
     return string
@@ -16,7 +16,7 @@ def carrots_get_response():
 @pytest.fixture
 def submission_get_response():
     string = None
-    path = Path('./katti/tests/submission_get_response.html').resolve()
+    path = Path('./tests/submission_get_response.html').resolve()
     with open(path, 'r') as f:
         string = f.read()
     return string

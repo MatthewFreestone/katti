@@ -6,7 +6,6 @@ chardet==3.0.4
 colorama==0.4.6
 idna==2.7
 iniconfig==2.0.0
--e git+https://github.com/MatthewFreestone/katti-automation.git@85dd7340b4bf1f23983165f2ff91d87692e23123#egg=katti
 packaging==23.0
 pluggy==1.0.0
 pyproject_hooks==1.0.0
