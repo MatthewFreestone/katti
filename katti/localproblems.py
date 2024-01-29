@@ -471,7 +471,7 @@ def cleanup_after_run(verbose=False):
     if verbose:
         print("Done cleaning up")
 
-def _update_ratings(user_conf, problems_conf, kattis_config, verbose=False):
+def _update_ratings(user_conf, problems_conf, unsolved_problems_conf, kattis_config, verbose=False):
     # update ratings if necessary
     prev_update = datetime.strptime(
         user_conf["ids_last_updated"], "%Y-%m-%d %H:%M:%S")
@@ -480,9 +480,11 @@ def _update_ratings(user_conf, problems_conf, kattis_config, verbose=False):
     # 3600 seconds in hour - no hours field
     hours = (current - prev_update).total_seconds() / 3600
     if hours >= user_conf["ratings_update_period"]:
-        print("Updating ratings...") if verbose else None
+        print("Updating ratings and Unsolved Probles...") if verbose else None
         webkattis.get_updated_ratings(
             problems_conf, kattis_config, verbose=verbose)
+        webkattis.get_unsolved_problems(
+            unsolved_problems_conf, user_conf, verbose=verbose)
         user_conf["ids_last_updated"] = str(current)
         configloader.update_user_config()
     else:
