@@ -14,6 +14,8 @@ _PROBLEMS_ENDING = "/problems/"
 _LOGIN_ENDING = "/login"
 _SUBMIT_ENDING = "/submit"
 _STATUS_ENDING = "/submissions/"
+_UNFINISHED_ENDING = "/problems?order=title_link&f_solved=off&f_partial-score=on&f_tried=on&f_untried=on"
+
 
 _HEADERS = {"User-Agent": "kattis-cli-submit"}
 
@@ -161,6 +163,73 @@ def add_problem(problem_id: str, problem_conf: dict, kattis_config: configloader
     # add problem to config
     problem_conf[problem_id] = problem_rating
     configloader.problem_config_changed()
+
+def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: configloader.KattisConfig, verbose=False):
+    """Gets all unfinished problems from Kattis
+    
+    Parameters
+    ----------
+    kattis_config: configloader.KattisConfig
+        A KattisConfig object containing the user's kattis config
+    verbose: bool
+        A boolean flag to enable verbose mode
+
+    Warning
+    ----------
+    This function is slow and should only be used to initialize the unsolved problems config
+    """
+
+    page_num = 1
+    url = f"{kattis_config.url}{_PROBLEMS_ENDING[:-1]}?page={page_num}"
+
+    r = requests.get(url)
+    r_content = r.text
+
+    soup = BeautifulSoup(r_content, 'html.parser')
+    max_page_num = soup.find_all('div', class_='flex gap-2')[0].find_all('a')[2].text
+    max_page_num = int(max_page_num)
+
+    print("Logging in...") if verbose else None
+    login_response = login(kattis_config, verbose)
+
+    # for each page of problems
+    while page_num <= max_page_num:
+        print(f"Getting unsolved problems from page {page_num}...") if verbose else None
+        url = f"{kattis_config.url}{_UNFINISHED_ENDING}&page={page_num}"
+        r = requests.get(url, cookies=login_response.cookies, headers=_HEADERS)
+        r_content = r.text
+
+        soup = BeautifulSoup(r_content, 'html.parser')
+        try:
+            rows = soup.find_all('tbody')[1].find_all('tr')
+        except:
+            print('No more problems found') if verbose else None
+            break
+
+        # add every problem on the page to unsolved_problems
+        for row in rows:
+            link = row.find('a', href=True)
+            problem_id = link['href'].split('/problems/')[1]
+            problem_rating_elem = row.find('span', class_='difficulty_number')
+
+            if problem_rating_elem:
+                problem_rating = problem_rating_elem.text
+            else:
+                problem_rating = 'Difficulty rating not found'
+
+            # convert rating to float if possible
+            # for multi-rating problems, keep as string for later parsing
+            try:
+                problem_rating = float(problem_rating)
+            except ValueError:
+                problem_rating = problem_rating
+
+            unsolved_problems_conf[problem_id] = problem_rating
+            print(f'Added {problem_id} with rating {problem_rating} to unsolved_problems') if verbose else None
+        
+        page_num += 1
+    
+    configloader.unsolved_problems_config_changed()
 
 
 def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=False):
