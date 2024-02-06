@@ -16,6 +16,7 @@ class KattisConfig:
     username: str
     url: str
     token: str
+    password: str
 
 def load_user_config(config_path: str) -> dict:
     """Loads the user config file and returns it as a dict
@@ -75,7 +76,7 @@ def load_problems_config(config_path: str) -> dict:
             problems_config_changed = True
     return problems_list
 
-def load_unsolved_problems(config_path: str) -> dict:
+def load_unsolved_problems_config(config_path: str) -> dict:
     """Loads the unsolved problems file and returns it as a dict
 
     Parameters:
@@ -151,7 +152,7 @@ def save_problems_config(config_path: str, problems_config: dict):
             json.dump(problems_config, f)
         problems_config_changed = False
 
-def save_unsolved_problems(config_path: str, unsolved_problems: dict):
+def save_unsolved_problems_config(config_path: str, unsolved_problems: dict):
     """Saves the unsolved problems file
 
     Parameters:
@@ -191,9 +192,11 @@ def get_kattis_config(config_path: str) -> KattisConfig:
     username = config.get("user", "username")
     token = None
     url = None
+    password = None
     try:
         token = config.get("user", "token")
         url = config.get("kattis", "hostname")
+        password = config.get("user", "password")
     except configparser.NoOptionError:
         pass
     if token is None or url is None:
@@ -201,5 +204,11 @@ def get_kattis_config(config_path: str) -> KattisConfig:
         print("Please navigate to https://open.kattis.com/help/submit and download a new .kattisrc")
         print("Aborting...")
         sys.exit(1)
+    if password is None:
+        print("No password found in .kattisrc, please add it manually")
+        print("Add the following line to your .kattisrc file directly below the token:")
+        print("password = <your password>")
+        print("Aborting...")
+        sys.exit(1)
     url = "https://" + url
-    return KattisConfig(username, url, token)
+    return KattisConfig(username, url, token, password)

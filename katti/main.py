@@ -46,6 +46,9 @@ def main():
         case "description" | "d":
             problem_id = args.description
             webkattis.show_description(problem_id, kattis_conf, verbose=verbose)
+        case "update" | "u":
+            localproblems.update(
+                user_conf, problems_conf, unsolved_problems_conf, kattis_conf, verbose=verbose)
         case _:
             print(args)
             arg_parser.print_help()

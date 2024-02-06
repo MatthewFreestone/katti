@@ -1,3 +1,4 @@
+import re
 import sys
 import os
 import webbrowser
@@ -12,10 +13,13 @@ from katti.constants import MAX_SUBMISSION_CHECKS
 # URLs
 _PROBLEMS_ENDING = "/problems/"
 _LOGIN_ENDING = "/login"
+_LOGIN_WITH_EMAIL_ENDING = "/login/email" 
 _SUBMIT_ENDING = "/submit"
 _STATUS_ENDING = "/submissions/"
 _UNFINISHED_ENDING = "/problems?order=title_link&f_solved=off&f_partial-score=on&f_tried=on&f_untried=on"
 
+# session for kattis requests, so you don't have to pass cookies around
+kattis_session = requests.Session()
 
 _HEADERS = {"User-Agent": "kattis-cli-submit"}
 
@@ -178,25 +182,26 @@ def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: con
     ----------
     This function is slow and should only be used to initialize the unsolved problems config
     """
+    global kattis_session
+    
+    login_response = login_with_password(kattis_config, verbose)
 
     page_num = 1
-    url = f"{kattis_config.url}{_PROBLEMS_ENDING[:-1]}?page={page_num}"
 
-    r = requests.get(url)
+    # get the page number of pages of unsolved problems
+    url = f"{kattis_config.url}{_UNFINISHED_ENDING}"
+    r = kattis_session.get(url, headers=_HEADERS)
+
     r_content = r.text
-
     soup = BeautifulSoup(r_content, 'html.parser')
     max_page_num = soup.find_all('div', class_='flex gap-2')[0].find_all('a')[2].text
     max_page_num = int(max_page_num)
 
-    print("Logging in...") if verbose else None
-    login_response = login(kattis_config, verbose)
-
-    # for each page of problems
+    # for each page of problems get the problem id and rating and add to unsolved_problems
     while page_num <= max_page_num:
-        print(f"Getting unsolved problems from page {page_num}...") if verbose else None
+        print(f"Getting unsolved problems from page {page_num}/{max_page_num}...", end="\r", flush=True) if verbose else None
         url = f"{kattis_config.url}{_UNFINISHED_ENDING}&page={page_num}"
-        r = requests.get(url, cookies=login_response.cookies, headers=_HEADERS)
+        r = kattis_session.get(url, headers=_HEADERS)
         r_content = r.text
 
         soup = BeautifulSoup(r_content, 'html.parser')
@@ -225,7 +230,7 @@ def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: con
                 problem_rating = problem_rating
 
             unsolved_problems_conf[problem_id] = problem_rating
-            print(f'Added {problem_id} with rating {problem_rating} to unsolved_problems') if verbose else None
+            #print(f'Added {problem_id} with rating {problem_rating} to unsolved_problems') if verbose else None
         
         page_num += 1
     
@@ -309,13 +314,15 @@ def login(kattis_config: configloader.KattisConfig, verbose=False) -> requests.R
     requests.Response
         A response object containing the response from the login request
     """
+    global kattis_session
+
     login_creds = {
         "user": kattis_config.username,
         "token": kattis_config.token,
         "script": "true"
     }
     login_url = kattis_config.url + _LOGIN_ENDING
-    r = requests.post(login_url, data=login_creds, headers=_HEADERS)
+    r = kattis_session.post(login_url, data=login_creds, headers=_HEADERS)
 
     if r.status_code == 200:
         print("Login Successful") if verbose else None
@@ -330,6 +337,44 @@ def login(kattis_config: configloader.KattisConfig, verbose=False) -> requests.R
         r.raise_for_status()
     return r
 
+def login_with_password(kattis_config: configloader.KattisConfig, verbose=False) -> requests.Response:
+    """
+    A helper function to log a user in to kattis
+
+    Parameters
+    ----------
+    kattis_config: configloader.KattisConfig
+        A KattisConfig object containing the user's login credentials
+
+    Returns
+    -------
+    requests.Response
+        A response object containing the response from the login request
+    """
+    global kattis_session
+
+    r = kattis_session.get(f'{kattis_config.url}{_LOGIN_ENDING}/email', headers=_HEADERS)
+    regex_result = re.findall(r'value="(\d+)"', r.text)
+    csrf_token = regex_result[0]
+    data = {
+            'csrf_token': csrf_token,
+            'user': kattis_config.username,
+            'password':kattis_config.password #TODO: change to something more secure
+        }
+    r = kattis_session.post(f'{kattis_config.url}{_LOGIN_WITH_EMAIL_ENDING}', data=data)
+
+    if r.status_code == 200:
+        print("Login Successful") if verbose else None
+    else:
+        print("Login Failed")
+        if r.status_code == 403:
+            print("Invalid Username/Password (403)")
+        elif r.status_code == 404:
+            print("Invalid Login URL (404)")
+        else:
+            print("Status Code:", r.status_code)
+        r.raise_for_status()
+    return r
 
 def confirm_submission(problem_id, lang, files):
     """

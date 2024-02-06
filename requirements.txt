@@ -13,3 +13,5 @@ pytest==7.3.1
 requests==2.20.0
 soupsieve==2.4
 urllib3==1.24.3
+lxml==5.1.0
+```
