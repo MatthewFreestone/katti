@@ -59,7 +59,7 @@ $ katti add carrots
 ```
 
 **katti update**
-Update the list of problems from Kattis. This will update the list of problems that `katti random` can select from. This will also update the rating of each problem in "todo" list.  
+Update the list of problems from Kattis. This will update the list of problems that `katti random` can select from. This will also update the rating of each problem in "todo" list. (this function is slow, and may take about a minute to run) 
 ```bash
 $ katti update
 ```
