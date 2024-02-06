@@ -23,6 +23,14 @@ https://open.kattis.com/download/kattisrc
 $ mv .kattisrc $HOME
 ```
 
+**3. add password to .kattisrc:**
+In the .kattisrc file, add your password to the below line that says "token:". It should look like this:
+```
+[user]
+username: <username>
+token: <token>
+password: <password>
+```
 # Usage
 The tool can be run using a terminal or command prompt. If you are using a virtual environment, make sure to activate it before running the tool.
 
