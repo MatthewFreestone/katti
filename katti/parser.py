@@ -46,5 +46,9 @@ def get_parser():
     random_parser.add_argument(
         "random", metavar="<problem-rating>", help="selects a random added kattis problem with a given rating", type=float, default=-1, nargs='?')
     
+    update_parser = subcommands.add_parser(
+        "update", help="fetches most current ratings and unsolved problems", aliases=["u"])
+    _add_verbose(update_parser)
+    
     
     return arg_parser

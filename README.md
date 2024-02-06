@@ -58,8 +58,15 @@ Add a problem to your "todo" list, which is stored with your katti install. Runn
 $ katti add carrots
 ```
 
+**katti update**
+Update the list of problems from Kattis. This will update the list of problems that `katti random` can select from. This will also update the rating of each problem in "todo" list. (this function is slow, and may take about a minute to run) 
+```bash
+$ katti update
+```
+
 **katti random <difficulty>**
-Select a random problem from your "todo" list, and download it. If you specify a difficulty, it will only select problems that have the same difficulty, rounded down.  
+Select a random problem from your "unsolved" list, and download it. If you specify a difficulty, it will only select problems that have the same difficulty, rounded down.  
 ```bash
 $ katti random 2.0
 ```
+
