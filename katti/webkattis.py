@@ -197,6 +197,8 @@ def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: con
     max_page_num = soup.find_all('div', class_='flex gap-2')[0].find_all('a')[2].text
     max_page_num = int(max_page_num)
 
+    unsolved_problems_conf = {}
+
     # for each page of problems get the problem id and rating and add to unsolved_problems
     while page_num <= max_page_num:
         print(f"Getting unsolved problems from page {page_num}/{max_page_num}...", end="\r", flush=True) if verbose else None
