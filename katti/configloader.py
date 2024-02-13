@@ -101,6 +101,31 @@ def load_unsolved_problems_config(config_path: str) -> dict:
             unsolved_problems_config_changed  = True
     return unsolved_problems
 
+def load_selected_problems_config(config_path: str) -> dict:
+    """Loads the selected problems file and returns it as a dict
+
+    Parameters:
+    ----------
+    config_path: str
+        A string representing the absolute path to the selected problems file
+
+    Returns:
+    -------
+    dict 
+        A dictionary containing the selected problems
+    """
+    selected_problems = None
+    if not os.path.exists(config_path):
+        selected_problems = {}
+        selected_problems_config_changed = True
+    else:
+        with open(config_path, "r") as f:
+            selected_problems = json.load(f)
+        if not selected_problems:
+            selected_problems = {}
+            selected_problems_config_changed = True
+    return selected_problems
+
 
 def problem_config_changed():
     """Ensures that the problems config file is saved when the program exits"""

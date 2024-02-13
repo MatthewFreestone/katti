@@ -8,6 +8,8 @@ PROBLEMS_CONF_PATH = pkg_resources.resource_filename(
     __name__, 'problem_ids.json')
 UNSOLVED_PROBLEMS_CONF_PATH = pkg_resources.resource_filename(
     __name__, 'unsolved_problems.json')
+SELECTED_PROBLEMS_CONF_PATH = pkg_resources.resource_filename(
+    __name__, 'selected_ids.json')
 KATTIS_CONF_PATH = os.path.join(os.path.expanduser('~'), '.kattisrc')
 
 def main():
@@ -15,6 +17,7 @@ def main():
     user_conf = configloader.load_user_config(USER_CONF_PATH)
     problems_conf = configloader.load_problems_config(PROBLEMS_CONF_PATH)
     unsolved_problems_conf = configloader.load_unsolved_problems_config(UNSOLVED_PROBLEMS_CONF_PATH)
+    selected_problems_conf = configloader.load_selected_problems_config(SELECTED_PROBLEMS_CONF_PATH)
     kattis_conf = configloader.get_kattis_config(KATTIS_CONF_PATH)
 
     # add command line args
@@ -35,6 +38,11 @@ def main():
             rating = args.random
             localproblems.get_random_problem(
                 rating, user_conf, unsolved_problems_conf, kattis_conf, verbose=verbose)
+        case "selected" | "sel":
+            # defaults to -1 if not specified
+            rating = args.random
+            localproblems.get_random_problem(
+                rating, user_conf, selected_problems_conf, kattis_conf, verbose=verbose)
         case "run" | "r":
             localproblems.run(problems_conf, verbose=verbose)
         case "submit" | "s":
