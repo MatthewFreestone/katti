@@ -78,3 +78,9 @@ Select a random problem from your "unsolved" list, and download it. If you speci
 $ katti random 2.0
 ```
 
+**katti selected <difficulty>**
+Select a random problem from our high quality list, and download it. If you specify a difficulty, it will only select problems that have the same difficulty, rounded down.  
+```bash
+$ katti selected 2.0
+```
+

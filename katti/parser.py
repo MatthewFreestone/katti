@@ -49,6 +49,12 @@ def get_parser():
     update_parser = subcommands.add_parser(
         "update", help="fetches most current ratings and unsolved problems", aliases=["u"])
     _add_verbose(update_parser)
+
+    selected_parser = subcommands.add_parser(
+        "selected", help="selects a random high quality kattis problem with a given rating", aliases=["sel"])
+    _add_verbose(selected_parser)
+    selected_parser.add_argument(
+        "selected", metavar="<problem-rating>", help="selects a random high quality kattis problem with a given rating", type=float, default=-1, nargs='?')
     
     
     return arg_parser
