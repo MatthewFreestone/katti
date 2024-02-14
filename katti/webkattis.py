@@ -296,10 +296,55 @@ def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=Fa
     plain_text_response = submit_response.content.decode(
         "utf-8").replace("<br />", "\n")
     print(plain_text_response)
-    # check the submission acceptance status
-    # submission_id = plain_text_response.split()[-1].rstrip(".")
-    # webbrowser.open(submission_id)
-    # check_submission_status(problem_id + extension, submission_id, kattis_config, user_config, login_response.cookies, verbose)
+
+    response_url = plain_text_response.split()[-1].rstrip(".")
+
+    try:
+        check_submission_status(response_url, kattis_config, user_config, verbose)
+    except e:
+        print("Failed to check submission status:", e)
+        sys.exit(0)
+
+def check_submission_status(submission_url: str, kattis_config: configloader.KattisConfig, user_config: dict, verbose=False):
+    """Checks the status of a submission
+
+    Parameters
+    ----------
+    submission_url: str
+        A string representing the url of the submission
+    kattis_config: configloader.KattisConfig
+        A KattisConfig object containing the user's kattis config
+    user_config: configloader.UserConfig
+        A UserConfig object containing the user's config
+    verbose: bool
+        A boolean flag to enable verbose mode
+    """
+    global kattis_session
+
+    login_with_password(kattis_config, verbose)
+
+    print("Checking submission status...") if verbose else None
+
+    r = kattis_session.get(submission_url, headers=_HEADERS)
+    r_content = r.text
+
+    soup = BeautifulSoup(r_content, 'html.parser')
+    status = soup.find('div', class_='status').text
+    test_cases = soup.find_all('div', class_='testcase')[0]
+    test_cases = test_cases.find_all('i', class_='status-icon')
+    test_cases = [i['title'] for i in test_cases]
+
+    if status in ['Running', 'Pending', 'Judging', 'Compiling', 'New']:
+        check_submission_status(submission_url, kattis_config, user_config, verbose)
+        return
+
+    print()
+    print(f"Submission status: {status}")
+
+    if status != 'Accepted':
+        print()
+        for i, test_case in enumerate(test_cases):
+            print(f"Test case {i + 1}: {test_case.split(': ')[1]}")
 
 
 def login(kattis_config: configloader.KattisConfig, verbose=False) -> requests.Response:
@@ -354,6 +399,9 @@ def login_with_password(kattis_config: configloader.KattisConfig, verbose=False)
         A response object containing the response from the login request
     """
     global kattis_session
+
+    # clear session
+    kattis_session = requests.Session()
 
     r = kattis_session.get(f'{kattis_config.url}{_LOGIN_ENDING}/email', headers=_HEADERS)
     regex_result = re.findall(r'value="(\d+)"', r.text)
