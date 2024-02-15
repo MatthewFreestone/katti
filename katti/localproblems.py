@@ -201,7 +201,7 @@ def get_random_problem(desired_rating: float, user_conf: dict, problems_conf: di
             print("Invalid rating. Rating must be between 1 and 10")
             print("Aborting...")
             sys.exit(1)
-        choices = {i for i in problems_conf if rating <= problems_conf[i] < (rating + 1)}
+        choices = {i for i in problems_conf if rating <= float(problems_conf[i]) < (rating + 1)}
         print(
             f"Found {len(choices)} unsolved problems rated {rating}") if verbose else None
     else:

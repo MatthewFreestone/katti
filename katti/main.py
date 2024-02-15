@@ -40,7 +40,7 @@ def main():
                 rating, user_conf, unsolved_problems_conf, kattis_conf, verbose=verbose)
         case "selected" | "sel":
             # defaults to -1 if not specified
-            rating = args.random
+            rating = args.selected
             localproblems.get_random_problem(
                 rating, user_conf, selected_problems_conf, kattis_conf, verbose=verbose)
         case "run" | "r":

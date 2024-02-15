@@ -1,13 +1,14 @@
 import re
 import sys
 import os
+import time
 import webbrowser
 import requests
 from requests.cookies import RequestsCookieJar
 from bs4 import BeautifulSoup
 from katti import configloader
-from katti.utils import EXTENSION_TO_LANG, get_source_extension, infer_python_version
-from katti.constants import MAX_SUBMISSION_CHECKS
+from katti.utils import EXTENSION_TO_LANG, get_source_extension, infer_python_version, color
+from katti.constants import MAX_SUBMISSION_CHECKS, STATUS_MAP, colors
 
 
 # URLs
@@ -238,6 +239,81 @@ def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: con
     
     configloader.unsolved_problems_config_changed()
 
+def check_submission_status(submission_url: str, verbose=False) -> dict:
+    """Checks and returns the status of a submission
+
+    Parameters
+    ----------
+    submission_url: str
+        A string representing the url of the submission
+    verbose: bool
+        A boolean flag to enable verbose mode
+    """
+    global kattis_session
+    reply = kattis_session.get(str(submission_url) + '?json', headers=_HEADERS)
+    return reply.json()
+
+def get_judgement(submission_url: str, verbose=False):
+    """Prints the judgement of a submission
+    
+    Parameters
+    ----------
+    submission_url: str
+        A string representing the url of the submission
+    verbose: bool
+        A boolean flag to enable verbose mode
+    """
+    global kattis_session
+    while True:
+        status = check_submission_status(submission_url, verbose)
+        status_id = status['status_id']
+        testcases_done = status['testcase_index']
+        testcases_total = status['row_html'].count('<i') - 1
+
+        status_text = STATUS_MAP[status_id]
+
+        if status_id < 5: # if code is still running
+            print('\r%s...' % (status_text), end='')
+        else:
+            print('\rTest cases: ', end='')
+
+        if status_id == 8: # if compilation error
+            print('\r%s' % color(status_text, colors.RED_COLOR), end='')
+        elif status_id < 5 and status_id > 1: # if code is still running
+            print('\r%s...' % (status_text), end='')
+        elif status_id < 2: # if code is uploading
+            pass
+        else:
+            print('\rTest cases: ', end='')
+
+            if testcases_total == 0:
+                print('???', end='')
+            else:
+                s = '.' * (testcases_done - 1)
+                if status_id == 5:
+                    s += '?'
+                elif status_id == 16:
+                    s += '.'
+                else:
+                    s += 'x'
+
+                print('[%-*s]  %d / %d' % (testcases_total, s, testcases_done, testcases_total), end='')
+        
+        sys.stdout.flush()
+
+        if status_id > 5: # code is done running
+            success = status_id == 16 # if code is accepted
+            try:
+                soup = BeautifulSoup(status['row_html'], 'html.parser')
+                cpu_time = soup.find('.//*[@data-type="cpu"]').text
+                status_text += " (" + cpu_time + ")"
+            except:
+                pass
+            if status_id != 8:
+                print('\n' + color(status_text, colors.GREEN_COLOR if success else colors.RED_COLOR))
+            return success
+
+        time.sleep(0.25)
 
 def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=False):
     """Posts a submission to Kattis
@@ -297,55 +373,12 @@ def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=Fa
         "utf-8").replace("<br />", "\n")
     print(plain_text_response)
 
-    response_url = plain_text_response.split()[-1].rstrip(".")
+    if "Submission received" not in plain_text_response:
+        sys.exit(1)
 
-    try:
-        check_submission_status(response_url, kattis_config, user_config, verbose)
-    except e:
-        print("Failed to check submission status:", e)
-        sys.exit(0)
-
-def check_submission_status(submission_url: str, kattis_config: configloader.KattisConfig, user_config: dict, verbose=False):
-    """Checks the status of a submission
-
-    Parameters
-    ----------
-    submission_url: str
-        A string representing the url of the submission
-    kattis_config: configloader.KattisConfig
-        A KattisConfig object containing the user's kattis config
-    user_config: configloader.UserConfig
-        A UserConfig object containing the user's config
-    verbose: bool
-        A boolean flag to enable verbose mode
-    """
-    global kattis_session
-
-    login_with_password(kattis_config, verbose)
-
-    print("Checking submission status...") if verbose else None
-
-    r = kattis_session.get(submission_url, headers=_HEADERS)
-    r_content = r.text
-
-    soup = BeautifulSoup(r_content, 'html.parser')
-    status = soup.find('div', class_='status').text
-    test_cases = soup.find_all('div', class_='testcase')[0]
-    test_cases = test_cases.find_all('i', class_='status-icon')
-    test_cases = [i['title'] for i in test_cases]
-
-    if status in ['Running', 'Pending', 'Judging', 'Compiling', 'New']:
-        check_submission_status(submission_url, kattis_config, user_config, verbose)
-        return
-
+    response_url = str(plain_text_response.split()[-1].rstrip("."))
     print()
-    print(f"Submission status: {status}")
-
-    if status != 'Accepted':
-        print()
-        for i, test_case in enumerate(test_cases):
-            print(f"Test case {i + 1}: {test_case.split(': ')[1]}")
-
+    get_judgement(response_url) # this prints the response
 
 def login(kattis_config: configloader.KattisConfig, verbose=False) -> requests.Response:
     """
