@@ -231,9 +231,6 @@ def get_kattis_config(config_path: str) -> KattisConfig:
         sys.exit(1)
     if password is None:
         print("No password found in .kattisrc, please add it manually")
-        print("Add the following line to your .kattisrc file directly below the token:")
-        print("password = <your password>")
-        print("Aborting...")
-        sys.exit(1)
+        print("Functions that require a password will not work")
     url = "https://" + url
     return KattisConfig(username, url, token, password)
