@@ -80,4 +80,4 @@ def color(text: str, color: int) -> str:
     color: int
         An integer representing the color code
     """
-    return '\x1b[%sm%s\x1b[0m' % (color, text)
+    return f'\x1b[{color}m{text}\x1b[0m'
