@@ -185,6 +185,10 @@ def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: con
     """
     global kattis_session
     
+    if kattis_config.password == None:
+        print(f"Password not found in .kattisrc file. Please add password to .kattisrc file to use this function.")
+        return
+
     login_response = login_with_password(kattis_config, verbose)
 
     page_num = 1
