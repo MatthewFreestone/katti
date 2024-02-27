@@ -1,14 +1,22 @@
 [project]
 name = "katti"
 version = "0.0.1"
+description = "Commandline tool for Kattis problems"
+requires-python = ">3.7"
+readme = "README.md"
 dependencies = [
-    "requests",
-    "beautifulsoup4",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.2",
 ]
+keywords = ["kattis"]
+license = {file = "LICENSE"}
+
+[project.urls]
+Homepage = "https://github.com/MatthewFreestone/katti"
 
 [project.scripts]
 katti = "katti.main:main"
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
