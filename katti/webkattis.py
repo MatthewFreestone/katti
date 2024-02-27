@@ -202,7 +202,7 @@ def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: con
 
     # for each page of problems get the problem id and rating and add to unsolved_problems
     while page_num <= max_page_num:
-        print(f"Getting unsolved problems from page {page_num}/{max_page_num}...", end="\r", flush=True) if verbose else None
+        print(f"Getting unsolved problems from page {page_num}/{max_page_num}...", end="\r", flush=True)
         url = f"{kattis_config.url}{_UNFINISHED_ENDING}&page={page_num}"
         r = kattis_session.get(url, headers=_HEADERS)
         r_content = r.text
@@ -233,7 +233,7 @@ def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: con
                 problem_rating = problem_rating
 
             unsolved_problems_conf[problem_id] = problem_rating
-            #print(f'Added {problem_id} with rating {problem_rating} to unsolved_problems') if verbose else None
+            print(f'Added {problem_id} with rating {problem_rating} to unsolved_problems') if verbose else None
         
         page_num += 1
     
@@ -273,14 +273,14 @@ def get_judgement(submission_url: str, verbose=False):
         status_text = STATUS_MAP[status_id]
 
         if status_id < 5: # if code is still running
-            print('\r%s...' % (status_text), end='')
+            print(f'\r{status_text}...', end='')
         else:
             print('\rTest cases: ', end='')
 
         if status_id == 8: # if compilation error
-            print('\r%s' % color(status_text, colors.RED_COLOR), end='')
+            print(f'\r{color(status_text, colors.RED_COLOR)}', end='')
         elif status_id < 5 and status_id > 1: # if code is still running
-            print('\r%s...' % (status_text), end='')
+            print(f'\r{status_text}...', end='')
         elif status_id < 2: # if code is uploading
             pass
         else:
@@ -297,7 +297,7 @@ def get_judgement(submission_url: str, verbose=False):
                 else:
                     s += 'x'
 
-                print('[%-*s]  %d / %d' % (testcases_total, s, testcases_done, testcases_total), end='')
+                print(f'[{s:<{testcases_total}}]  {testcases_done} / {testcases_total}', end='')
         
         sys.stdout.flush()
 
@@ -306,11 +306,11 @@ def get_judgement(submission_url: str, verbose=False):
             try:
                 soup = BeautifulSoup(status['row_html'], 'html.parser')
                 cpu_time = soup.find('.//*[@data-type="cpu"]').text
-                status_text += " (" + cpu_time + ")"
+                status_text += f" ({cpu_time})"
             except:
                 pass
             if status_id != 8:
-                print('\n' + color(status_text, colors.GREEN_COLOR if success else colors.RED_COLOR))
+                print(f'\n{color(status_text, colors.GREEN_COLOR if success else colors.RED_COLOR)}')
             return success
 
         time.sleep(0.25)
