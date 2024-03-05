@@ -69,3 +69,15 @@ def infer_python_version(filename) -> int:
             if python2.search(line.split('#')[0]):
                 return 2
     return 3
+
+def color(text: str, color: int) -> str:
+    """Returns a colored string
+
+    Parameters
+    ----------
+    text: str
+        A string representing the text to color
+    color: int
+        An integer representing the color code
+    """
+    return f'\x1b[{color}m{text}\x1b[0m'
