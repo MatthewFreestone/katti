@@ -201,7 +201,7 @@ def get_random_problem(desired_rating: float, user_conf: dict, problems_conf: di
             print("Invalid rating. Rating must be between 1 and 10")
             print("Aborting...")
             sys.exit(1)
-        choices = {i for i in problems_conf if rating <= problems_conf[i] < (rating + 1)}
+        choices = {i for i in problems_conf if rating <= float(problems_conf[i]) < (rating + 1)}
         print(
             f"Found {len(choices)} unsolved problems rated {rating}") if verbose else None
     else:
@@ -471,20 +471,23 @@ def cleanup_after_run(verbose=False):
     if verbose:
         print("Done cleaning up")
 
-def _update_ratings(user_conf, problems_conf, kattis_config, verbose=False):
-    # update ratings if necessary
+def update(user_conf, problems_conf, unsolved_problems_conf, kattis_config, verbose=False):
+    # update ratings and unsolved problems if necessary
     prev_update = datetime.strptime(
         user_conf["ids_last_updated"], "%Y-%m-%d %H:%M:%S")
-    print(f"Ratings last updated on {prev_update}") if verbose else None
-    current = datetime.now()
+    print(f"Ratings and problems last updated on {prev_update}") if verbose else None
+    current = datetime.now().isoformat(sep=" ", timespec="seconds")
+    current = datetime.strptime(current, "%Y-%m-%d %H:%M:%S")
     # 3600 seconds in hour - no hours field
     hours = (current - prev_update).total_seconds() / 3600
     if hours >= user_conf["ratings_update_period"]:
-        print("Updating ratings...") if verbose else None
+        print("Updating ratings and Unsolved Problems...") if verbose else None
         webkattis.get_updated_ratings(
             problems_conf, kattis_config, verbose=verbose)
+        webkattis.add_all_unfinished_problems(
+            unsolved_problems_conf, kattis_config, verbose=verbose)
         user_conf["ids_last_updated"] = str(current)
         configloader.update_user_config()
     else:
         print(
-            f"Ratings updated {hours: .2f} hours ago. Skipping update...") if verbose else None
+            f"Ratings and problems updated {hours: .2f} hours ago. Skipping update...") if verbose else None

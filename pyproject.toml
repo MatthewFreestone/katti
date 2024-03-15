@@ -1,6 +1,6 @@
 [project]
 name = "katti"
-version = "0.0.1"
+version = "0.0.2"
 description = "Commandline tool for Kattis problems"
 authors = [
     { name = "Matthew Freestone", email = "matthewfreestone1593@gmail.com" }

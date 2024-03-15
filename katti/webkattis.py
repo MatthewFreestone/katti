@@ -1,19 +1,26 @@
+import re
 import sys
 import os
+import time
 import webbrowser
 import requests
 from requests.cookies import RequestsCookieJar
 from bs4 import BeautifulSoup
 from katti import configloader
-from katti.utils import EXTENSION_TO_LANG, get_source_extension, infer_python_version
-from katti.constants import MAX_SUBMISSION_CHECKS
+from katti.utils import EXTENSION_TO_LANG, get_source_extension, infer_python_version, color
+from katti.constants import MAX_SUBMISSION_CHECKS, STATUS_MAP, colors
 
 
 # URLs
 _PROBLEMS_ENDING = "/problems/"
 _LOGIN_ENDING = "/login"
+_LOGIN_WITH_EMAIL_ENDING = "/login/email" 
 _SUBMIT_ENDING = "/submit"
 _STATUS_ENDING = "/submissions/"
+_UNFINISHED_ENDING = "/problems?order=title_link&f_solved=off&f_partial-score=on&f_tried=on&f_untried=on"
+
+# session for kattis requests, so you don't have to pass cookies around
+kattis_session = requests.Session()
 
 _HEADERS = {"User-Agent": "kattis-cli-submit"}
 
@@ -162,6 +169,155 @@ def add_problem(problem_id: str, problem_conf: dict, kattis_config: configloader
     problem_conf[problem_id] = problem_rating
     configloader.problem_config_changed()
 
+def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: configloader.KattisConfig, verbose=False):
+    """Gets all unfinished problems from Kattis
+    
+    Parameters
+    ----------
+    kattis_config: configloader.KattisConfig
+        A KattisConfig object containing the user's kattis config
+    verbose: bool
+        A boolean flag to enable verbose mode
+
+    Warning
+    ----------
+    This function is slow and should only be used to initialize the unsolved problems config
+    """
+    global kattis_session
+    
+    if kattis_config.password == None:
+        print(f"Password not found in .kattisrc file. Please add password to .kattisrc file to use this function.")
+        return
+
+    login_response = login_with_password(kattis_config, verbose)
+
+    page_num = 1
+
+    # get the page number of pages of unsolved problems
+    url = f"{kattis_config.url}{_UNFINISHED_ENDING}"
+    r = kattis_session.get(url, headers=_HEADERS)
+
+    r_content = r.text
+    soup = BeautifulSoup(r_content, 'html.parser')
+    max_page_num = soup.find_all('div', class_='flex gap-2')[0].find_all('a')[2].text
+    max_page_num = int(max_page_num)
+
+    unsolved_problems_conf = {}
+
+    # for each page of problems get the problem id and rating and add to unsolved_problems
+    while page_num <= max_page_num:
+        print(f"Getting unsolved problems from page {page_num}/{max_page_num}...", end="\r", flush=True)
+        url = f"{kattis_config.url}{_UNFINISHED_ENDING}&page={page_num}"
+        r = kattis_session.get(url, headers=_HEADERS)
+        r_content = r.text
+
+        soup = BeautifulSoup(r_content, 'html.parser')
+        try:
+            rows = soup.find_all('tbody')[1].find_all('tr')
+        except:
+            print('No more problems found') if verbose else None
+            break
+
+        # add every problem on the page to unsolved_problems
+        for row in rows:
+            link = row.find('a', href=True)
+            problem_id = link['href'].split('/problems/')[1]
+            problem_rating_elem = row.find('span', class_='difficulty_number')
+
+            if problem_rating_elem:
+                problem_rating = problem_rating_elem.text
+            else:
+                problem_rating = 'Difficulty rating not found'
+
+            # convert rating to float if possible
+            # for multi-rating problems, keep as string for later parsing
+            try:
+                problem_rating = float(problem_rating)
+            except ValueError:
+                problem_rating = problem_rating
+
+            unsolved_problems_conf[problem_id] = problem_rating
+            print(f'Added {problem_id} with rating {problem_rating} to unsolved_problems') if verbose else None
+        
+        page_num += 1
+    
+    configloader.unsolved_problems_config_changed()
+
+def check_submission_status(submission_url: str, verbose=False) -> dict:
+    """Checks and returns the status of a submission
+
+    Parameters
+    ----------
+    submission_url: str
+        A string representing the url of the submission
+    verbose: bool
+        A boolean flag to enable verbose mode
+    """
+    global kattis_session
+    reply = kattis_session.get(str(submission_url) + '?json', headers=_HEADERS)
+    return reply.json()
+
+def get_judgement(submission_url: str, verbose=False):
+    """Prints the judgement of a submission
+    
+    Parameters
+    ----------
+    submission_url: str
+        A string representing the url of the submission
+    verbose: bool
+        A boolean flag to enable verbose mode
+    """
+    global kattis_session
+    while True:
+        status = check_submission_status(submission_url, verbose)
+        status_id = status['status_id']
+        testcases_done = status['testcase_index']
+        testcases_total = status['row_html'].count('<i') - 1
+
+        status_text = STATUS_MAP[status_id]
+
+        if status_id < 5: # if code is still running
+            print(f'\r{status_text}...', end='')
+        else:
+            print('\rTest cases: ', end='')
+
+        if status_id == 8: # if compilation error
+            print(f'\r{color(status_text, colors.RED_COLOR)}', end='')
+        elif status_id < 5 and status_id > 1: # if code is still running
+            print(f'\r{status_text}...', end='')
+        elif status_id < 2: # if code is uploading
+            pass
+        else:
+            print('\rTest cases: ', end='')
+
+            if testcases_total == 0:
+                print('???', end='')
+            else:
+                s = '.' * (testcases_done - 1)
+                if status_id == 5:
+                    s += '?'
+                elif status_id == 16:
+                    s += '.'
+                else:
+                    s += 'x'
+
+                print(f'[{s:<{testcases_total}}]  {testcases_done} / {testcases_total}', end='')
+        
+        sys.stdout.flush()
+
+        if status_id > 5: # code is done running
+            success = status_id == 16 # if code is accepted
+            try:
+                soup = BeautifulSoup(status['row_html'], 'html.parser')
+                cpu_time = soup.find('.//*[@data-type="cpu"]').text
+                status_text += f" ({cpu_time})"
+            except:
+                pass
+            if status_id != 8:
+                print(f'\n{color(status_text, colors.GREEN_COLOR if success else colors.RED_COLOR)}')
+            return success
+
+        time.sleep(0.25)
 
 def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=False):
     """Posts a submission to Kattis
@@ -220,11 +376,13 @@ def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=Fa
     plain_text_response = submit_response.content.decode(
         "utf-8").replace("<br />", "\n")
     print(plain_text_response)
-    # check the submission acceptance status
-    # submission_id = plain_text_response.split()[-1].rstrip(".")
-    # webbrowser.open(submission_id)
-    # check_submission_status(problem_id + extension, submission_id, kattis_config, user_config, login_response.cookies, verbose)
 
+    if "Submission received" not in plain_text_response:
+        sys.exit(1)
+
+    response_url = str(plain_text_response.split()[-1].rstrip("."))
+    print()
+    get_judgement(response_url) # this prints the response
 
 def login(kattis_config: configloader.KattisConfig, verbose=False) -> requests.Response:
     """
@@ -240,13 +398,15 @@ def login(kattis_config: configloader.KattisConfig, verbose=False) -> requests.R
     requests.Response
         A response object containing the response from the login request
     """
+    global kattis_session
+
     login_creds = {
         "user": kattis_config.username,
         "token": kattis_config.token,
         "script": "true"
     }
     login_url = kattis_config.url + _LOGIN_ENDING
-    r = requests.post(login_url, data=login_creds, headers=_HEADERS)
+    r = kattis_session.post(login_url, data=login_creds, headers=_HEADERS)
 
     if r.status_code == 200:
         print("Login Successful") if verbose else None
@@ -261,6 +421,47 @@ def login(kattis_config: configloader.KattisConfig, verbose=False) -> requests.R
         r.raise_for_status()
     return r
 
+def login_with_password(kattis_config: configloader.KattisConfig, verbose=False) -> requests.Response:
+    """
+    A helper function to log a user in to kattis
+
+    Parameters
+    ----------
+    kattis_config: configloader.KattisConfig
+        A KattisConfig object containing the user's login credentials
+
+    Returns
+    -------
+    requests.Response
+        A response object containing the response from the login request
+    """
+    global kattis_session
+
+    # clear session
+    kattis_session = requests.Session()
+
+    r = kattis_session.get(f'{kattis_config.url}{_LOGIN_ENDING}/email', headers=_HEADERS)
+    regex_result = re.findall(r'value="(\d+)"', r.text)
+    csrf_token = regex_result[0]
+    data = {
+            'csrf_token': csrf_token,
+            'user': kattis_config.username,
+            'password':kattis_config.password #TODO: change to something more secure
+        }
+    r = kattis_session.post(f'{kattis_config.url}{_LOGIN_WITH_EMAIL_ENDING}', data=data)
+
+    if r.status_code == 200:
+        print("Login Successful") if verbose else None
+    else:
+        print("Login Failed")
+        if r.status_code == 403:
+            print("Invalid Username/Password (403)")
+        elif r.status_code == 404:
+            print("Invalid Login URL (404)")
+        else:
+            print("Status Code:", r.status_code)
+        r.raise_for_status()
+    return r
 
 def confirm_submission(problem_id, lang, files):
     """

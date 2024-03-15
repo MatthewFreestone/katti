@@ -1,0 +1,1 @@
+in webkattis.py there are 2 login functions, one with a password, one with the token. Use the password login function to access data as the user on a webpage. ex getting the submission response.
