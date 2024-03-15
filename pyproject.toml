@@ -2,11 +2,15 @@
 name = "katti"
 version = "0.0.1"
 description = "Commandline tool for Kattis problems"
+authors = [
+    { name = "Matthew Freestone", email = "matthewfreestone1593@gmail.com" }
+]
 requires-python = ">3.7"
 readme = "README.md"
 dependencies = [
     "requests>=2.31.0",
     "beautifulsoup4>=4.12.2",
+    "setuptools>=69.2.0",
 ]
 keywords = ["kattis"]
 license = {file = "LICENSE"}
@@ -20,3 +24,9 @@ katti = "katti.main:main"
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "pytest>=8.1.1",
+]

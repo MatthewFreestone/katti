@@ -14,13 +14,26 @@ certifi==2024.2.2
     # via requests
 charset-normalizer==3.3.2
     # via requests
+colorama==0.4.6
+    # via pytest
+exceptiongroup==1.2.0
+    # via pytest
 idna==3.6
     # via requests
+iniconfig==2.0.0
+    # via pytest
+packaging==24.0
+    # via pytest
+pluggy==1.4.0
+    # via pytest
+pytest==8.1.1
 requests==2.31.0
     # via katti
 setuptools==69.2.0
     # via katti
 soupsieve==2.5
     # via beautifulsoup4
+tomli==2.0.1
+    # via pytest
 urllib3==2.2.1
     # via requests
