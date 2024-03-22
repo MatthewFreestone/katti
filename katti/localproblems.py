@@ -139,7 +139,7 @@ def get_problem(problem_id, problems_config, kattis_config, preferred_language=N
     # write problem id and rating to config file
     if problem_id not in problems_config:
         problems_config[problem_id] = rating
-        configloader.problem_config_changed()
+        configloader.update_problem_config()
 
     # write content into a zip file
     with open("samples.zip", mode="wb") as f:
@@ -338,7 +338,7 @@ def run_compiler(file_name: str, extension: str, verbose=False) -> Union[str, No
         # check presence of g++ compiler
         # status = os.system("which g++")
         status = subprocess.run(
-            ['g++', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            ['g++', '--version'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode
         if status != 0:
             print("Unable to locate g++ compiler")
             print("Aborting...")
@@ -390,7 +390,8 @@ def run_compiler(file_name: str, extension: str, verbose=False) -> Union[str, No
                 else:
                     return "python " + file_name + extension
             return "python3 " + file_name + extension
-
+    print(f"Unsupported extension: {extension}")
+    return None
 
 def run_test_cases(executable: str, sample_files: List[str], expected: List[str], verbose=False):
     """Runs a given kattis problem through the provided sample inputs. Assumes

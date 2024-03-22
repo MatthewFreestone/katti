@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from katti import configloader
 from katti.utils import EXTENSION_TO_LANG, get_source_extension, infer_python_version, color
 from katti.constants import MAX_SUBMISSION_CHECKS, STATUS_MAP, colors
+from typing import Union
 
 # URLs
 _PROBLEMS_ENDING = "/problems/"
@@ -129,7 +130,7 @@ def get_updated_ratings(problems_conf: dict, kattis_config: configloader.KattisC
     for problem_id in problems_conf:
         problems_conf[problem_id] = get_problem_rating(
             problem_id, kattis_config, verbose)
-    configloader.problem_config_changed()
+    configloader.update_problem_config()
 
 
 def add_problem(problem_id: str, problem_conf: dict, kattis_config: configloader.KattisConfig, verbose=False):
@@ -166,7 +167,7 @@ def add_problem(problem_id: str, problem_conf: dict, kattis_config: configloader
             f"Adding problem '{problem_id}' to problems config (rating {problem_rating}).")
     # add problem to config
     problem_conf[problem_id] = problem_rating
-    configloader.problem_config_changed()
+    configloader.update_problem_config()
 
 def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: configloader.KattisConfig, verbose=False):
     """Gets all unfinished problems from Kattis
@@ -240,7 +241,7 @@ def add_all_unfinished_problems(unsolved_problems_conf: dict, kattis_config: con
         
         page_num += 1
     
-    configloader.unsolved_problems_config_changed()
+    configloader.update_unsolved_problems_config()
 
 def check_submission_status(submission_url: str, verbose=False) -> dict:
     """Checks and returns the status of a submission
@@ -492,7 +493,7 @@ def confirm_submission(problem_id, lang, files):
     print()
 
 
-def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[str], url: str, mainclass: str = "", verbose=False) -> requests.Response:
+def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[str], url: str, mainclass: Union[str, None] = "", verbose=False) -> requests.Response:
     """
     A helper function to post a solution to kattis
 

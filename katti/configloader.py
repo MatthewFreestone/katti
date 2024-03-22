@@ -5,6 +5,7 @@ import configparser
 import sys
 from dataclasses import dataclass
 from katti import constants
+from typing import Union
 
 user_config_changed = False
 problems_config_changed = False
@@ -16,7 +17,7 @@ class KattisConfig:
     username: str
     url: str
     token: str
-    password: str
+    password: Union[str, None]
 
 def load_user_config(config_path: str) -> dict:
     """Loads the user config file and returns it as a dict
@@ -127,12 +128,12 @@ def load_selected_problems_config(config_path: str) -> dict:
     return selected_problems
 
 
-def problem_config_changed():
+def update_problem_config():
     """Ensures that the problems config file is saved when the program exits"""
     global problems_config_changed
     problems_config_changed = True
 
-def unsolved_problems_config_changed():
+def update_unsolved_problems_config():
     """Ensures that the unsolved problems file is saved when the program exits"""
     global unsolved_problems_config_changed
     unsolved_problems_config_changed = True
