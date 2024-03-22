@@ -27,39 +27,41 @@ def main():
     verbose = args.verbose
 
     # handle args passed in
-    match args.subcommand:
-        case "get" | "g":
-            problem_id = args.get
-            preferred_language = user_conf.get("preferred_language", None)
-            localproblems.get_problem(
-                problem_id, problems_conf, kattis_conf, preferred_language, verbose=verbose)
-        case "random":
-            # defaults to -1 if not specified
-            rating = args.random
-            localproblems.get_random_problem(
-                rating, user_conf, unsolved_problems_conf, kattis_conf, verbose=verbose)
-        case "selected" | "sel":
-            # defaults to -1 if not specified
-            rating = args.selected
-            localproblems.get_random_problem(
-                rating, user_conf, selected_problems_conf, kattis_conf, verbose=verbose)
-        case "run" | "r":
-            localproblems.run(problems_conf, verbose=verbose)
-        case "submit" | "s":
-            webkattis.post(kattis_conf, user_conf, verbose=verbose)
-        case "add" | "a":
-            problem_id = args.add
-            webkattis.add_problem(problem_id, problems_conf,
-                                kattis_conf, verbose=verbose)
-        case "description" | "d":
-            problem_id = args.description
-            webkattis.show_description(problem_id, kattis_conf, verbose=verbose)
-        case "update" | "u":
-            localproblems.update(
-                user_conf, problems_conf, unsolved_problems_conf, kattis_conf, verbose=verbose)
-        case _:
-            print(args)
-            arg_parser.print_help()
+    cmd = args.subcommand
+
+    if cmd == "get" or cmd == "g":
+        problem_id = args.get
+        preferred_language = user_conf.get("preferred_language", None)
+        localproblems.get_problem(
+            problem_id, problems_conf, kattis_conf, preferred_language, verbose=verbose)
+    elif cmd == "random":
+        # defaults to -1 if not specified
+        rating = args.random
+        localproblems.get_random_problem(
+            rating, user_conf, unsolved_problems_conf, kattis_conf, verbose=verbose)
+    elif cmd == "selected" or cmd == "sel":
+        # defaults to -1 if not specified
+        rating = args.selected
+        localproblems.get_random_problem(
+            rating, user_conf, selected_problems_conf, kattis_conf, verbose=verbose)
+    elif cmd == "run" or cmd == "r":
+        localproblems.run(problems_conf, verbose=verbose)
+    elif cmd == "submit" or cmd == "s":
+        filename = args.submit
+        webkattis.post(kattis_conf, user_conf, filename=filename, verbose=verbose)
+    elif cmd == "add" or cmd == "a":
+        problem_id = args.add
+        webkattis.add_problem(problem_id, problems_conf,
+                            kattis_conf, verbose=verbose)
+    elif cmd == "description" or cmd == "d":
+        problem_id = args.description
+        webkattis.show_description(problem_id, kattis_conf, verbose=verbose)
+    elif cmd == "update" or cmd == "u":
+        localproblems.update(
+            user_conf, problems_conf, unsolved_problems_conf, kattis_conf, verbose=verbose)
+    else:
+        print(args)
+        arg_parser.print_help()
 
     # update conf files if needed
     configloader.save_user_config(USER_CONF_PATH, user_conf)

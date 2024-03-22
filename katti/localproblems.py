@@ -8,7 +8,7 @@ import filecmp
 import subprocess
 from katti import configloader, webkattis
 from katti.utils import SUPPORTED_LANGS, EXTENSION_TO_LANG, JUNK_EXTENSIONS, infer_python_version
-
+from typing import Union
 
 def get_boilerplate(problem_id: str, rating: str, extension: str) -> tuple[str, str]:
     """Gives filename and boilerplate code for a problem in a given programming language.
@@ -259,7 +259,7 @@ def run(problems_conf, verbose: bool = False) -> None:
         print("Aborting...")
 
 
-def get_source_extension(problem_id, verbose: bool = False, specific_file: str | None = None):
+def get_source_extension(problem_id, verbose: bool = False, specific_file: Union[str, None] = None):
     """Helper function to find a problem's sorce file extension
 
     Parameters:
@@ -316,7 +316,7 @@ def get_samples_and_answers(verbose: bool = False) -> Tuple[List[str], List[str]
     return (samples, answers)
 
 
-def run_compiler(file_name: str, extension: str, verbose=False) -> str | None:
+def run_compiler(file_name: str, extension: str, verbose=False) -> Union[str, None]:
     """Helper function for run() method. Compiles the code for compiled languages and checks
     existence of interpreter for interpreted languages
 

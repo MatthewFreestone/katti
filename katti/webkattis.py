@@ -10,7 +10,6 @@ from katti import configloader
 from katti.utils import EXTENSION_TO_LANG, get_source_extension, infer_python_version, color
 from katti.constants import MAX_SUBMISSION_CHECKS, STATUS_MAP, colors
 
-
 # URLs
 _PROBLEMS_ENDING = "/problems/"
 _LOGIN_ENDING = "/login"
@@ -319,7 +318,7 @@ def get_judgement(submission_url: str, verbose=False):
 
         time.sleep(0.25)
 
-def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=False):
+def post(kattis_config: configloader.KattisConfig, user_config: dict, filename:str, verbose=False):
     """Posts a submission to Kattis
 
     Parameters
@@ -328,15 +327,21 @@ def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=Fa
         A KattisConfig object containing the user's kattis config
     user_config: configloader.UserConfig
         A UserConfig object containing the user's config
+    filename: str
+        A string representing the filename to submit
     verbose: bool
         A boolean flag to enable verbose mode
     """
 
     # TODO: add handling for explict problem id and source file selection
     problem_id = os.path.basename(os.getcwd())
-    extension = get_source_extension(problem_id)
-    if not extension:
-        raise ValueError("No source file found.")
+    if not filename:
+        extension = get_source_extension(problem_id)
+        if not extension:
+            raise ValueError("No source file found.")
+        filename = problem_id + extension
+    else:
+        extension = os.path.splitext(filename)[1]
     lang = EXTENSION_TO_LANG.get(extension)
 
     if not lang:
@@ -346,10 +351,10 @@ def post(kattis_config: configloader.KattisConfig, user_config: dict, verbose=Fa
     mainclass = problem_id if extension == ".java" else None
     # language to submit as
     if lang == "Python":
-        version = infer_python_version(problem_id + extension)
+        version = infer_python_version(filename)
         lang = "Python " + str(version)
     # list of files to submit
-    submission_files = [problem_id + extension]
+    submission_files = [filename]
     print(
         f"Submission files: {', '.join(submission_files)}") if verbose else None
 
@@ -487,7 +492,7 @@ def confirm_submission(problem_id, lang, files):
     print()
 
 
-def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[str], url: str, mainclass: str | None = "", verbose=False) -> requests.Response:
+def submit(cookies: RequestsCookieJar, problem_id: str, lang: str, files: list[str], url: str, mainclass: str = "", verbose=False) -> requests.Response:
     """
     A helper function to post a solution to kattis
 

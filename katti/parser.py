@@ -26,6 +26,8 @@ def get_parser():
     
     submit_parser = subcommands.add_parser(
         "submit", help="submit a kattis problem", aliases=["s"])
+    submit_parser.add_argument(
+        "submit", help="Filename to submit", metavar="<filename>", type=str, default='', nargs='?')
     _add_verbose(submit_parser)
 
     description_parser = subcommands.add_parser(
